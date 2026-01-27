@@ -44,6 +44,7 @@ const injectTelegramWidget = () => {
   if (document.getElementById(telegramWidgetId)) return
 
   window.onTelegramAuth = async (user) => {
+    console.log('[telegram] callback payload', user)
     try {
       await authStore.loginWithTelegram(user)
       router.push('/')
@@ -63,9 +64,34 @@ const injectTelegramWidget = () => {
   script.setAttribute('data-request-access', 'write')
 
   document.getElementById('telegram-login-container')?.appendChild(script)
+  console.log('[telegram] widget script injected')
 }
 
 onMounted(() => {
+  const params = new URLSearchParams(window.location.search)
+  const hash = params.get('hash')
+  if (hash) {
+    const payload = {
+      id: Number(params.get('id')),
+      first_name: params.get('first_name'),
+      last_name: params.get('last_name'),
+      username: params.get('username'),
+      photo_url: params.get('photo_url'),
+      auth_date: Number(params.get('auth_date')),
+      hash,
+    }
+    console.log('[telegram] redirect params payload', payload)
+    authStore
+      .loginWithTelegram(payload)
+      .then(() => router.push('/'))
+      .catch(() => {
+        error.value = 'Ошибка входа через Telegram'
+      })
+      .finally(() => {
+        // убрать query-параметры после обработки
+        router.replace({ path: '/login' })
+      })
+  }
   injectTelegramWidget()
 })
 

@@ -137,8 +137,7 @@ const goToRegister = () => {
 
               <div class="pt-2">
                 <button
-                  class="w-full mb-3 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  :disabled="!email.trim() || !password.trim() || isSubmitting"
+                  class="w-full mb-3 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:brightness-110 active:scale-[0.98] transition-all"
                   @click="handleSubmit"
                 >
                   <span v-if="!isSubmitting">ВОЙТИ</span>
@@ -148,7 +147,7 @@ const goToRegister = () => {
                   />
                 </button>
 
-                <div class="relative w-full mb-3">
+                <div class="relative w-full mb-4">
                   <button
                     class="w-full py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                     style="background-color: #229ED9; color: white;"

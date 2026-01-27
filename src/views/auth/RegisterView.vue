@@ -24,8 +24,11 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    await authStore.register(email.value.trim(), password.value.trim())
-    router.push({ path: '/verify', query: { identifier: email.value.trim() } })
+    const identifier = email.value.trim()
+    await authStore.register(identifier, password.value.trim())
+    // помечаем, что пользователь только что прошёл регистрацию
+    sessionStorage.setItem('pendingVerificationIdentifier', identifier)
+    router.push({ path: '/verify', query: { identifier } })
   } catch (e) {
     error.value = 'Произошла ошибка. Попробуйте ещё раз.'
   } finally {
@@ -149,7 +152,7 @@ const goToLogin = () => {
                 </button>
 
                 <button
-                  class="w-full mb-3 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  class="w-full mb-1 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   style="background-color: #229ED9; color: white;"
                   @click="handleTelegramLogin"
                 >
@@ -157,7 +160,7 @@ const goToLogin = () => {
                   <span>ВОЙТИ С TELEGRAM</span>
                 </button>
 
-                <div id="telegram-register-container" class="flex justify-center mb-3" />
+                <div id="telegram-register-container" class="mt-1 flex justify-center" />
 
                 <button
                   type="button"

@@ -149,7 +149,7 @@ const goToRegister = () => {
                 </button>
 
                 <button
-                  class="w-full mb-3 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  class="w-full mb-1 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   style="background-color: #229ED9; color: white;"
                   @click="handleTelegramLogin"
                 >
@@ -157,7 +157,7 @@ const goToRegister = () => {
                   <span>ВОЙТИ С TELEGRAM</span>
                 </button>
 
-                <div id="telegram-login-container" class="flex justify-center mb-3" />
+                <div id="telegram-login-container" class="mt-1 flex justify-center" />
 
                 <div class="flex items-center justify-between text-xs text-muted-foreground">
                   <button

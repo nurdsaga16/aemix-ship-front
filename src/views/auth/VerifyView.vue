@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ShieldCheck } from 'lucide-vue-next'
 
@@ -51,6 +51,14 @@ const handleResend = async () => {
     error.value = 'Не удалось отправить код повторно.'
   }
 }
+
+onMounted(() => {
+  const stored = sessionStorage.getItem('pendingVerificationIdentifier') || ''
+  if (!identifier.value || stored !== identifier.value) {
+    // если нет ожидаемой регистрации — отправляем обратно на /register
+    router.replace('/register')
+  }
+})
 
 const goBack = () => {
   router.back()

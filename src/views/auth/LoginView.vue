@@ -44,7 +44,6 @@ const injectTelegramWidget = () => {
   if (document.getElementById(telegramWidgetId)) return
 
   window.onTelegramAuth = async (user) => {
-    console.log('[telegram] callback payload', user)
     try {
       await authStore.loginWithTelegram(user)
       router.push('/')
@@ -60,11 +59,13 @@ const injectTelegramWidget = () => {
   script.setAttribute('data-telegram-login', 'aemix_ship_bot')
   script.setAttribute('data-size', 'large')
   script.setAttribute('data-userpic', 'false')
-  script.setAttribute('data-onauth', 'onTelegramAuth(user)')
+  script.setAttribute(
+    'data-auth-url',
+    'https://aemix-ship-front.vercel.app/login',
+  )
   script.setAttribute('data-request-access', 'write')
 
   document.getElementById('telegram-login-container')?.appendChild(script)
-  console.log('[telegram] widget script injected')
 }
 
 onMounted(() => {
@@ -80,7 +81,6 @@ onMounted(() => {
       auth_date: Number(params.get('auth_date')),
       hash,
     }
-    console.log('[telegram] redirect params payload', payload)
     authStore
       .loginWithTelegram(payload)
       .then(() => router.push('/'))

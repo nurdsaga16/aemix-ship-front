@@ -88,7 +88,7 @@ const goBack = () => {
         </svg>
       </button>
 
-      <div class="flex justify-center items-start pt-10 md:pt-16">
+      <div class="flex justify-center items-start mt-20 md:mt-24">
         <div class="max-w-md w-full space-y-4">
           <GlassCard :delay="0.1">
             <div class="flex items-center gap-3 mb-3">

@@ -1,7 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Mail, Lock, LogIn } from 'lucide-vue-next'
+import { LogIn } from 'lucide-vue-next'
 
 import GlassCard from '@/components/GlassCard.vue'
 import Header from '@/components/Header.vue'
@@ -108,6 +108,10 @@ const goBack = () => {
 const goToRegister = () => {
   router.push('/register')
 }
+
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
+}
 </script>
 
 <template>
@@ -201,8 +205,8 @@ const goToRegister = () => {
                   <button
                     type="button"
                     class="text-right opacity-70"
+                    @click="goToForgotPassword"
                   >
-                    <!-- TODO: реализовать восстановление пароля -->
                     Забыли пароль?
                   </button>
                 </div>

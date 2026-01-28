@@ -96,6 +96,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function forgotPassword(email) {
+    try {
+      await api.post('/auth/forgot-password', { email })
+    } catch (err) {
+      throw new Error('Ошибка отправки письма для сброса пароля')
+    }
+  }
+
+  async function resetPassword(token, password, confirmPassword) {
+    try {
+      await api.post('/auth/reset-password', { token, password, confirmPassword })
+    } catch (err) {
+      throw new Error('Ошибка сброса пароля')
+    }
+  }
+
   function logout() {
     removeAuthData()
     if (window.location.pathname !== '/login') {
@@ -110,6 +126,8 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     verify,
     resendVerificationCode,
+    forgotPassword,
+    resetPassword,
     logout,
   }
 })

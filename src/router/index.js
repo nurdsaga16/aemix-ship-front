@@ -4,6 +4,8 @@ import MainApp from '@/views/MainApp.vue'
 import LoginView from '@/views/auth/LoginView.vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
 import VerifyView from '@/views/auth/VerifyView.vue'
+import ForgotPasswordView from '@/views/auth/ForgotPasswordView.vue'
+import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = createRouter({
@@ -29,6 +31,16 @@ const router = createRouter({
       path: '/verify',
       name: 'verify',
       component: VerifyView,
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordView,
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: ResetPasswordView,
     },
   ],
 })

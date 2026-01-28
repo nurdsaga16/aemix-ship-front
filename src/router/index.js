@@ -21,11 +21,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      meta: { guestOnly: true },
     },
     {
       path: '/register',
       name: 'register',
       component: RegisterView,
+      meta: { guestOnly: true },
     },
     {
       path: '/verify',
@@ -36,11 +38,13 @@ const router = createRouter({
       path: '/forgot-password',
       name: 'forgot-password',
       component: ForgotPasswordView,
+      meta: { guestOnly: true },
     },
     {
       path: '/reset-password',
       name: 'reset-password',
       component: ResetPasswordView,
+      meta: { guestOnly: true },
     },
   ],
 })
@@ -55,7 +59,7 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !loggedIn) {
     next('/login')
-  } else if (!to.meta.requiresAuth && loggedIn && (to.name === 'LoginView')) {
+  } else if (to.meta.guestOnly && loggedIn) {
     next('/')
   } else {
     next()

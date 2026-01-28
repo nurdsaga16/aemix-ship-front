@@ -22,10 +22,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (storedAuthData) authData.value = storedAuthData
   }
 
-  // Инициализируем authData из cookies при загрузке
   readAuthData()
 
-  // Добавляем токен в каждый запрос, если он есть
   api.interceptors.request.use(
     (config) => {
       if (authData.value?.token) {
@@ -37,7 +35,6 @@ export const useAuthStore = defineStore('auth', () => {
     (error) => Promise.reject(error),
   )
 
-  // Если бэк вернул 401/403 — чистим auth и уводим на /login
   api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -57,7 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
       const token = (
         await api.post('/auth/login', { emailOrTelegramId, password })
       ).data.token
-      saveAuthData({ token })
+      saveAuthData({ token, identifier: emailOrTelegramId })
     } catch (err) {
       throw new Error('Ошибка входа')
     }
@@ -66,7 +63,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginWithTelegram(telegramPayload) {
     try {
       const token = (await api.post('/auth/telegram', telegramPayload)).data.token
-      saveAuthData({ token })
+      saveAuthData({
+        token,
+        telegramId: telegramPayload.id,
+        telegramUsername: telegramPayload.username,
+      })
     } catch (err) {
       throw new Error('Ошибка входа через Telegram')
     }
@@ -112,6 +113,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function changePassword(currentPassword, newPassword, confirmPassword) {
+    try {
+      await api.post('/auth/change-password', { currentPassword, newPassword, confirmPassword })
+    } catch (err) {
+      throw new Error('Ошибка изменения пароля')
+    }
+  }
+
   function logout() {
     removeAuthData()
     if (window.location.pathname !== '/login') {
@@ -128,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
     resendVerificationCode,
     forgotPassword,
     resetPassword,
+    changePassword,
     logout,
   }
 })

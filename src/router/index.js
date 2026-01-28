@@ -6,6 +6,7 @@ import RegisterView from '@/views/auth/RegisterView.vue'
 import VerifyView from '@/views/auth/VerifyView.vue'
 import ForgotPasswordView from '@/views/auth/ForgotPasswordView.vue'
 import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
+import ProfileView from '@/views/auth/ProfileView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = createRouter({
@@ -45,6 +46,12 @@ const router = createRouter({
       name: 'reset-password',
       component: ResetPasswordView,
       meta: { guestOnly: true },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta: { requiresAuth: true },
     },
   ],
 })

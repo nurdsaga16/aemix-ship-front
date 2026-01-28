@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-import HomeScreen from '@/views/HomeScreen.vue'
-import OrdersScreen from '@/views/OrdersScreen.vue'
-import OrderDetailsScreen from '@/views/OrderDetailsScreen.vue'
-import InstructionsScreen from '@/views/InstructionsScreen.vue'
-import AddOrderScreen from '@/views/AddOrderScreen.vue'
-import AboutScreen from '@/views/AboutScreen.vue'
+import HomeView from '@/views/HomeView.vue'
+import OrdersView from '@/views/OrdersView.vue'
+import OrderDetailsView from '@/views/OrderDetailsView.vue'
+import InstructionsView from '@/views/InstructionsView.vue'
+import AddOrderView from '@/views/AddOrderView.vue'
+import AboutView from '@/views/AboutView.vue'
 import SupportButton from '@/components/SupportButton.vue'
 
 const currentScreen = ref('home')
@@ -78,37 +78,37 @@ const activeOrdersCount = computed(() => {
 
 <template>
   <div class="min-h-screen overflow-x-hidden">
-    <HomeScreen
+    <HomeView
       v-if="currentScreen === 'home'"
       :active-orders-count="activeOrdersCount"
       :on-navigate="handleNavigate"
     />
 
-    <OrdersScreen
+    <OrdersView
       v-else-if="currentScreen === 'orders'"
       :orders="orders"
       :on-back="handleBack"
       :on-order-click="handleOrderClick"
     />
 
-    <OrderDetailsScreen
+    <OrderDetailsView
       v-else-if="currentScreen === 'orderDetails' && selectedOrder"
       :order="selectedOrder"
       :on-back="handleBack"
     />
 
-    <InstructionsScreen
+    <InstructionsView
       v-else-if="currentScreen === 'instructions'"
       :on-back="handleBack"
     />
 
-    <AddOrderScreen
+    <AddOrderView
       v-else-if="currentScreen === 'add'"
       :on-back="handleBack"
       :on-add-order="handleAddOrder"
     />
 
-    <AboutScreen
+    <AboutView
       v-else-if="currentScreen === 'about'"
       :on-back="handleBack"
     />

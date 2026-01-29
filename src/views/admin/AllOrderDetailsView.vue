@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, PackageX } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
-import OrderDetailsView from '@/views/OrderDetailsView.vue'
+import OrderDetailsView from '@/views/user/OrderDetailsView.vue'
 
 const route = useRoute()
 const router = useRouter()

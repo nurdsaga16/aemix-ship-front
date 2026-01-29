@@ -1,9 +1,10 @@
 <script setup>
-import { Package, Layers, Plus, BookOpen, Building2, ChevronRight, UploadCloud, Users, MapPin, ScanLine } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { Package, Layers, Plus, BookOpen, Building2, ChevronRight, UploadCloud, Users, MapPin, ScanLine, QrCode } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import Header from '@/components/Header.vue'
 
-defineProps({
+const props = defineProps({
   activeOrdersCount: {
     type: Number,
     required: true
@@ -11,20 +12,34 @@ defineProps({
   onNavigate: {
     type: Function,
     required: true
-  }
+  },
+  menuItems: {
+    type: Array,
+    required: false
+  },
+  showActiveOrders: {
+    type: Boolean,
+    required: false,
+    default: true,
+  },
 })
 
-const menuItems = [
+const defaultMenuItems = [
   { id: 'orders', label: 'МОИ ЗАКАЗЫ', icon: Package },
   { id: 'all-orders', label: 'ВСЕ ЗАКАЗЫ', icon: Layers },
   { id: 'admin-upload', label: 'ИМПОРТ ЗАКАЗОВ', icon: UploadCloud },
   { id: 'admin-users', label: 'ВСЕ ПОЛЬЗОВАТЕЛИ', icon: Users },
   { id: 'admin-points', label: 'ПУНКТЫ ВЫДАЧИ', icon: MapPin },
   { id: 'admin-scan-logs', label: 'ЛОГИ СКАНИРОВАНИЯ', icon: ScanLine },
+  { id: 'admin-scan', label: 'СКАНИРОВАНИЕ', icon: QrCode },
   { id: 'add', label: 'ДОБАВИТЬ ЗАКАЗ', icon: Plus },
   { id: 'instructions', label: 'ИНСТРУКЦИИ', icon: BookOpen },
   { id: 'about', label: 'О КОМПАНИИ', icon: Building2 },
 ]
+
+const menuItems = computed(() => {
+  return props.menuItems?.length ? props.menuItems : defaultMenuItems
+})
 </script>
 
 <template>
@@ -33,7 +48,7 @@ const menuItems = [
     
     <main class="px-5 pb-28 md:max-w-3xl md:mx-auto">
       <!-- Status Bar -->
-      <GlassCard class="mb-6" :delay="0.1">
+      <GlassCard v-if="showActiveOrders" class="mb-6" :delay="0.1">
         <div class="flex items-center justify-between">
           <span class="text-muted-foreground text-sm">Активных заказов</span>
           <span class="text-2xl font-black text-primary">{{ activeOrdersCount }}</span>

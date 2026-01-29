@@ -123,7 +123,7 @@ const filteredLogs = computed(() => {
 })
 
 const handleBack = () => {
-  router.push('/home')
+  router.push('/')
 }
 </script>
 
@@ -271,21 +271,23 @@ const handleBack = () => {
           :key="log.id"
           :delay="0.12 + index * 0.03"
         >
-          <div class="flex items-start justify-between gap-4">
+          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div class="min-w-0">
               <p class="text-caps text-sm mb-1">{{ log.trackCode }}</p>
               <p class="text-muted-foreground text-xs">
                 {{ log.pickup }}
               </p>
-              <p class="text-muted-foreground text-xs mt-1">
-                {{ log.scannedAt }} • {{ log.operator }}
-              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>{{ log.scannedAt }}</span>
+                <span class="opacity-60">•</span>
+                <span>{{ log.operator }}</span>
+              </div>
             </div>
-            <div class="text-right">
-              <div class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+            <div class="md:text-right">
+              <div class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">
                 Статус
               </div>
-              <div class="flex items-center justify-end gap-2">
+              <div class="flex flex-wrap items-center gap-2 md:justify-end">
                 <span :class="statusClass(log.oldStatus)">
                   {{ log.oldStatus }}
                 </span>
@@ -294,9 +296,13 @@ const handleBack = () => {
                   {{ log.newStatus }}
                 </span>
               </div>
-              <p class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-2">
-                {{ log.source === 'customs' ? 'Таможня' : 'Пункт выдачи' }}
-              </p>
+              <div class="mt-3">
+                <span
+                  class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] tracking-[0.18em] uppercase bg-glass/60 text-muted-foreground"
+                >
+                  {{ log.source === 'customs' ? 'Таможня' : 'Пункт выдачи' }}
+                </span>
+              </div>
             </div>
           </div>
         </GlassCard>

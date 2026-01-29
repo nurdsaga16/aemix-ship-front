@@ -8,12 +8,14 @@ import ForgotPasswordView from '@/views/auth/ForgotPasswordView.vue'
 import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
 import ProfileView from '@/views/auth/ProfileView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
-import AllOrdersView from '@/views/AllOrdersView.vue'
-import AllOrderDetailsView from '@/views/AllOrderDetailsView.vue'
-import AdminUploadOrdersView from '@/views/AdminUploadOrdersView.vue'
-import AdminUsersView from '@/views/AdminUsersView.vue'
-import AdminPointsView from '@/views/AdminPointsView.vue'
-import AdminScanLogsView from '@/views/AdminScanLogsView.vue'
+import { getRoleFromToken } from '@/lib/auth'
+import AllOrdersView from '@/views/admin/AllOrdersView.vue'
+import AllOrderDetailsView from '@/views/admin/AllOrderDetailsView.vue'
+import AdminUploadOrdersView from '@/views/admin/AdminUploadOrdersView.vue'
+import AdminUsersView from '@/views/admin/AdminUsersView.vue'
+import AdminPointsView from '@/views/admin/AdminPointsView.vue'
+import AdminScanLogsView from '@/views/admin/AdminScanLogsView.vue'
+import ScanPage from '@/views/admin/ScanPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -63,37 +65,43 @@ const router = createRouter({
       path: '/all-orders',
       name: 'all-orders',
       component: AllOrdersView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
       path: '/all-orders/:orderId',
       name: 'all-order-details',
       component: AllOrderDetailsView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/admin/upload-orders',
-      name: 'admin-upload-orders',
+      path: '/upload-orders',
+      name: 'upload-orders',
       component: AdminUploadOrdersView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/admin/users',
-      name: 'admin-users',
+      path: '/users',
+      name: 'users',
       component: AdminUsersView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/admin/points',
-      name: 'admin-points',
+      path: '/points',
+      name: 'points',
       component: AdminPointsView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/admin/scan-logs',
-      name: 'admin-scan-logs',
+      path: '/scan-logs',
+      name: 'scan-logs',
       component: AdminScanLogsView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, role: 'ADMIN' },
+    },
+    {
+      path: '/scan',
+      name: 'scan',
+      component: ScanPage,
+      meta: { requiresAuth: true, role: 'ADMIN' },
     }
   ],
 })
@@ -103,12 +111,20 @@ function isAuthenticated() {
   return !!authStore.authData?.token
 }
 
+function getUserRole() {
+  const authStore = useAuthStore()
+  return getRoleFromToken(authStore.authData?.token)
+}
+
 router.beforeEach((to, from, next) => {
   const loggedIn = isAuthenticated()
+  const requiredRole = to.meta?.role
 
   if (to.meta.requiresAuth && !loggedIn) {
     next('/login')
   } else if (to.meta.guestOnly && loggedIn) {
+    next('/')
+  } else if (requiredRole && getUserRole() !== requiredRole) {
     next('/')
   } else {
     next()

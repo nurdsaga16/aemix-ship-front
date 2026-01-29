@@ -1,5 +1,5 @@
 <script setup>
-import { Package, Plus, BookOpen, Building2, ChevronRight } from 'lucide-vue-next'
+import { Package, Layers, Plus, BookOpen, Building2, ChevronRight, UploadCloud } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import Header from '@/components/Header.vue'
 
@@ -16,6 +16,8 @@ defineProps({
 
 const menuItems = [
   { id: 'orders', label: 'МОИ ЗАКАЗЫ', icon: Package },
+  { id: 'all-orders', label: 'ВСЕ ЗАКАЗЫ', icon: Layers },
+  { id: 'admin-upload', label: 'ИМПОРТ ЗАКАЗОВ', icon: UploadCloud },
   { id: 'add', label: 'ДОБАВИТЬ ЗАКАЗ', icon: Plus },
   { id: 'instructions', label: 'ИНСТРУКЦИИ', icon: BookOpen },
   { id: 'about', label: 'О КОМПАНИИ', icon: Building2 },
@@ -26,7 +28,7 @@ const menuItems = [
   <div class="min-h-screen relative z-10">
     <Header />
     
-    <main class="px-5 pb-28">
+    <main class="px-5 pb-28 md:max-w-3xl md:mx-auto">
       <!-- Status Bar -->
       <GlassCard class="mb-6" :delay="0.1">
         <div class="flex items-center justify-between">

@@ -24,7 +24,7 @@ defineProps({
       <h1 class="text-caps text-lg">О КОМПАНИИ</h1>
     </header>
 
-    <main class="px-5 pb-8">
+    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
       <!-- Logo Card -->
       <GlassCard class="mb-6 text-center" :delay="0.1">
         <div class="flex justify-center mb-4">

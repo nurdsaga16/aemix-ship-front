@@ -47,7 +47,7 @@ const guides = [
       <h1 class="text-caps text-lg">ИНСТРУКЦИИ</h1>
     </header>
 
-    <main class="px-5 pb-8">
+    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
       <!-- Introduction -->
       <GlassCard class="mb-6" :delay="0.1">
         <p class="text-muted-foreground text-sm leading-relaxed">

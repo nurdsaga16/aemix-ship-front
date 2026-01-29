@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 import HomeView from '@/views/HomeView.vue'
 import OrdersView from '@/views/OrdersView.vue'
@@ -11,6 +12,7 @@ import SupportButton from '@/components/SupportButton.vue'
 
 const currentScreen = ref('home')
 const selectedOrderId = ref(null)
+const router = useRouter()
 
 const orders = ref([
   {
@@ -34,6 +36,14 @@ const orders = ref([
 ])
 
 const handleNavigate = (screen) => {
+  if (screen === 'all-orders') {
+    router.push('/all-orders')
+    return
+  }
+  if (screen === 'admin-upload') {
+    router.push('/admin/upload-orders')
+    return
+  }
   currentScreen.value = screen
 }
 

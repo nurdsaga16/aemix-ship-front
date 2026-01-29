@@ -32,7 +32,7 @@ defineProps({
       <h1 class="text-caps text-lg">МОИ ЗАКАЗЫ</h1>
     </header>
 
-    <main class="px-5 pb-8">
+    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
       <div v-if="orders.length === 0" class="flex flex-col items-center justify-center min-h-[60vh] animate-slide-up">
         <!-- Empty State -->
         <div class="w-24 h-24 rounded-3xl bg-glass/40 flex items-center justify-center mb-6">

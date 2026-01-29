@@ -96,7 +96,6 @@ const goBack = () => {
                   :disabled="isSubmitting"
                   @click="handleSubmit"
                 >
-                  <Send class="w-4 h-4" />
                   <span v-if="!isSubmitting">ОТПРАВИТЬ ССЫЛКУ</span>
                   <div
                     v-else

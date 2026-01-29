@@ -8,6 +8,9 @@ import ForgotPasswordView from '@/views/auth/ForgotPasswordView.vue'
 import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
 import ProfileView from '@/views/auth/ProfileView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
+import AllOrdersView from '@/views/AllOrdersView.vue'
+import AllOrderDetailsView from '@/views/AllOrderDetailsView.vue'
+import AdminUploadOrdersView from '@/views/AdminUploadOrdersView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +56,24 @@ const router = createRouter({
       component: ProfileView,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/all-orders',
+      name: 'all-orders',
+      component: AllOrdersView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/all-orders/:orderId',
+      name: 'all-order-details',
+      component: AllOrderDetailsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/upload-orders',
+      name: 'admin-upload-orders',
+      component: AdminUploadOrdersView,
+      meta: { requiresAuth: true },
+    }
   ],
 })
 

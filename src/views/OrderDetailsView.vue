@@ -44,7 +44,7 @@ const info = computed(() => statusInfo[props.order.status])
       <h1 class="text-caps text-lg">{{ order.id }}</h1>
     </header>
 
-    <main class="px-5 pb-8">
+    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
       <!-- Status Card -->
       <GlassCard class="mb-6 text-center" :delay="0.1">
         <div class="text-5xl mb-4">{{ info.emoji }}</div>

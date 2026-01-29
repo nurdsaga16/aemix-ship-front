@@ -117,7 +117,9 @@ const goBack = () => {
               @click="toggleAccordion"
             >
               <div class="flex items-center gap-2">
-                <Lock class="w-4 h-4 text-primary" />
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Lock class="w-4 h-4 text-primary" />
+                </div>
                 <span class="text-sm font-medium">Изменить пароль</span>
               </div>
               <ChevronDown

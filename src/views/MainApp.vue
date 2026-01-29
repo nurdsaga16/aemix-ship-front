@@ -44,6 +44,18 @@ const handleNavigate = (screen) => {
     router.push('/admin/upload-orders')
     return
   }
+  if (screen === 'admin-users') {
+    router.push('/admin/users')
+    return
+  }
+  if (screen === 'admin-points') {
+    router.push('/admin/points')
+    return
+  }
+  if (screen === 'admin-scan-logs') {
+    router.push('/admin/scan-logs')
+    return
+  }
   currentScreen.value = screen
 }
 

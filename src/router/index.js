@@ -11,6 +11,9 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import AllOrdersView from '@/views/AllOrdersView.vue'
 import AllOrderDetailsView from '@/views/AllOrderDetailsView.vue'
 import AdminUploadOrdersView from '@/views/AdminUploadOrdersView.vue'
+import AdminUsersView from '@/views/AdminUsersView.vue'
+import AdminPointsView from '@/views/AdminPointsView.vue'
+import AdminScanLogsView from '@/views/AdminScanLogsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -72,6 +75,24 @@ const router = createRouter({
       path: '/admin/upload-orders',
       name: 'admin-upload-orders',
       component: AdminUploadOrdersView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: AdminUsersView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/points',
+      name: 'admin-points',
+      component: AdminPointsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/scan-logs',
+      name: 'admin-scan-logs',
+      component: AdminScanLogsView,
       meta: { requiresAuth: true },
     }
   ],

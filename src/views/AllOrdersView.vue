@@ -66,6 +66,7 @@ const orders = ref([
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const pickupFilter = ref('all')
+const sortOption = ref('newest')
 
 const filters = [
   { id: 'all', label: 'ВСЕ' },
@@ -80,6 +81,44 @@ const pickupOptions = computed(() => {
   return Array.from(new Set(points))
 })
 
+const sortOptions = [
+  { id: 'status', label: 'От ожидание до готов' },
+  { id: 'newest', label: 'Сначала новые' },
+  { id: 'oldest', label: 'Сначала старые' },
+]
+
+const statusOrder = ['pending', 'shipped', 'arrived', 'ready']
+const monthMap = {
+  янв: 0,
+  фев: 1,
+  мар: 2,
+  апр: 3,
+  май: 4,
+  июн: 5,
+  июл: 6,
+  авг: 7,
+  сен: 8,
+  окт: 9,
+  ноя: 10,
+  дек: 11,
+}
+
+const parseRuDate = (value) => {
+  const text = String(value || '').trim().toLowerCase()
+  const match = text.match(/(\d{1,2})\s([а-я]+)\s(\d{4}),\s(\d{2}):(\d{2})/)
+  if (!match) return 0
+  const [, day, monthKey, year, hours, minutes] = match
+  const monthIndex = monthMap[monthKey]
+  if (monthIndex === undefined) return 0
+  return new Date(
+    Number(year),
+    monthIndex,
+    Number(day),
+    Number(hours),
+    Number(minutes),
+  ).getTime()
+}
+
 const filteredOrders = computed(() => {
   const query = searchQuery.value.trim().toUpperCase()
   return orders.value.filter((order) => {
@@ -90,6 +129,19 @@ const filteredOrders = computed(() => {
       order.trackNumber.toUpperCase().includes(query)
     return matchesStatus && matchesPickup && matchesQuery
   })
+})
+
+const sortedOrders = computed(() => {
+  const items = [...filteredOrders.value]
+  if (sortOption.value === 'status') {
+    return items.sort(
+      (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status),
+    )
+  }
+  if (sortOption.value === 'oldest') {
+    return items.sort((a, b) => parseRuDate(a.updatedAt) - parseRuDate(b.updatedAt))
+  }
+  return items.sort((a, b) => parseRuDate(b.updatedAt) - parseRuDate(a.updatedAt))
 })
 
 const handleBack = () => {
@@ -160,28 +212,50 @@ const handleOrderClick = (orderId) => {
             {{ filter.label }}
           </button>
         </div>
-        <div class="mt-4">
-          <label class="block text-caps text-xs text-muted-foreground mb-2">
-            ПУНКТ ВЫДАЧИ
-          </label>
-          <div class="relative">
-            <select
-              v-model="pickupFilter"
-              class="w-full appearance-none bg-glass/40 border border-glass-border rounded-2xl pl-4 pr-12 py-3 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-            >
-              <option value="all">Все пункты</option>
-              <option v-for="point in pickupOptions" :key="point" :value="point">
-                {{ point }}
-              </option>
-            </select>
-            <div class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <ChevronDown class="w-4 h-4" />
+        <GlassCard class="mt-4" :delay="0.12">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="block text-caps text-[11px] text-muted-foreground mb-2">
+                ПУНКТ ВЫДАЧИ
+              </label>
+              <div class="relative">
+                <select
+                  v-model="pickupFilter"
+                  class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                >
+                  <option value="all">Все пункты</option>
+                  <option v-for="point in pickupOptions" :key="point" :value="point">
+                    {{ point }}
+                  </option>
+                </select>
+                <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <ChevronDown class="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-caps text-[11px] text-muted-foreground mb-2">
+                СОРТИРОВКА
+              </label>
+              <div class="relative">
+                <select
+                  v-model="sortOption"
+                  class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                >
+                  <option v-for="option in sortOptions" :key="option.id" :value="option.id">
+                    {{ option.label }}
+                  </option>
+                </select>
+                <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <ChevronDown class="w-4 h-4" />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </GlassCard>
       </div>
 
-      <div v-if="filteredOrders.length === 0" class="flex flex-col items-center justify-center min-h-[45vh] animate-slide-up">
+      <div v-if="sortedOrders.length === 0" class="flex flex-col items-center justify-center min-h-[45vh] animate-slide-up">
         <!-- Empty State -->
         <div class="w-24 h-24 rounded-3xl bg-glass/40 flex items-center justify-center mb-6">
           <Package class="w-12 h-12 text-muted-foreground" />
@@ -196,7 +270,7 @@ const handleOrderClick = (orderId) => {
       <div v-else class="space-y-3">
         <!-- Orders List -->
         <GlassCard
-          v-for="(order, index) in filteredOrders"
+          v-for="(order, index) in sortedOrders"
           :key="order.id"
           @click="handleOrderClick(order.id)"
           :delay="0.1 + index * 0.06"

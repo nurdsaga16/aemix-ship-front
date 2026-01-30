@@ -2,11 +2,19 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, QrCode } from 'lucide-vue-next'
+import { StreamBarcodeReader } from '@teckel/vue-barcode-reader'
 import GlassCard from '@/components/GlassCard.vue'
 
 const router = useRouter()
 const trackCode = ref('')
 const lastResult = ref(null)
+const isCameraActive = ref(false)
+const isCameraLoading = ref(false)
+const cameraError = ref('')
+const lastScannedValue = ref('')
+const lastScannedAt = ref(0)
+const cameraKey = ref(0)
+const cameraStream = ref(null)
 const scansHistory = ref([
   {
     id: 1,
@@ -61,6 +69,66 @@ const handleSubmit = () => {
   trackCode.value = ''
 }
 
+const handleToggleCamera = async () => {
+  if (isCameraActive.value) {
+    isCameraActive.value = false
+    isCameraLoading.value = false
+    if (cameraStream.value) {
+      cameraStream.value.getTracks().forEach((track) => track.stop())
+      cameraStream.value = null
+    }
+    return
+  }
+  cameraError.value = ''
+  isCameraLoading.value = true
+  cameraKey.value += 1
+  if (!window.isSecureContext) {
+    cameraError.value = 'Камера работает только по HTTPS. Откройте страницу по защищенному протоколу.'
+    isCameraLoading.value = false
+    return
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    cameraError.value = 'Браузер не поддерживает доступ к камере.'
+    isCameraLoading.value = false
+    return
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+    })
+    cameraStream.value = stream
+    isCameraActive.value = true
+    setTimeout(() => {
+      if (isCameraLoading.value) isCameraLoading.value = false
+    }, 2000)
+  } catch (error) {
+    handleCameraError()
+  }
+}
+
+const handleDecode = (value) => {
+  if (!value) return
+  const now = Date.now()
+  if (value === lastScannedValue.value && now - lastScannedAt.value < 1500) {
+    return
+  }
+  lastScannedValue.value = value
+  lastScannedAt.value = now
+  isCameraLoading.value = false
+  trackCode.value = value
+  handleSubmit()
+}
+
+const handleCameraError = () => {
+  cameraError.value = 'Не удалось получить доступ к камере. Проверьте разрешения.'
+  isCameraLoading.value = false
+  isCameraActive.value = false
+  if (cameraStream.value) {
+    cameraStream.value.getTracks().forEach((track) => track.stop())
+    cameraStream.value = null
+  }
+}
+
 const handleBack = () => {
   router.push('/')
 }
@@ -82,16 +150,38 @@ const handleBack = () => {
 
     <main class="px-5 pb-8 space-y-6 md:max-w-3xl md:mx-auto">
       <div class="mx-auto w-full max-w-md space-y-4">
-        <GlassCard :delay="0.04">
-          <div class="rounded-3xl border border-dashed border-glass-border/70 bg-glass/30 p-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-primary/15 flex items-center justify-center mx-auto mb-4">
-              <QrCode class="w-8 h-8 text-primary" />
-            </div>
-            <p class="text-caps text-sm mb-1">СКАНЕР ГОТОВ</p>
-            <p class="text-xs text-muted-foreground">
-              Наведи сканер на штрихкод — трек появится автоматически
-            </p>
+        <GlassCard :delay="0.06">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-caps text-sm">СКАНИРОВАТЬ КАМЕРОЙ</p>
+            <button
+              class="px-4 py-2 rounded-full text-caps text-xs transition-all border border-glass-border/70 bg-glass/50 hover:bg-glass/70"
+              @click="handleToggleCamera"
+            >
+              {{ isCameraActive ? 'ВЫКЛЮЧИТЬ' : 'ВКЛЮЧИТЬ' }}
+            </button>
           </div>
+          <div class="rounded-2xl overflow-hidden border border-glass-border/70 bg-glass/30">
+            <div v-if="isCameraActive" class="relative">
+              <StreamBarcodeReader
+                :key="cameraKey"
+                class="w-full h-56 object-cover"
+                @decode="handleDecode"
+                @error="handleCameraError"
+              />
+              <div
+                v-if="isCameraLoading"
+                class="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-black/30"
+              >
+                Инициализация камеры...
+              </div>
+            </div>
+            <div v-else class="flex items-center justify-center h-56 text-xs text-muted-foreground">
+              Камера выключена
+            </div>
+          </div>
+          <p v-if="cameraError" class="text-xs text-red-300 mt-3">
+            {{ cameraError }}
+          </p>
         </GlassCard>
 
         <GlassCard :delay="0.08">

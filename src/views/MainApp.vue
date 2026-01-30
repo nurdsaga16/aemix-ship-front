@@ -141,7 +141,13 @@ const menuItems = computed(() => {
       { id: 'admin-users', label: 'ВСЕ ПОЛЬЗОВАТЕЛИ', icon: Users },
       { id: 'admin-points', label: 'ПУНКТЫ ВЫДАЧИ', icon: MapPin },
       { id: 'admin-scan-logs', label: 'ЛОГИ СКАНИРОВАНИЯ', icon: ScanLine },
-      { id: 'admin-scan', label: 'СКАНИРОВАНИЕ', icon: QrCode },
+      {
+        id: 'admin-scan',
+        label: 'СКАНИРОВАНИЕ',
+        icon: QrCode,
+        subtitle: 'Камера или ручной ввод',
+        featured: true,
+      },
       ...common,
     ]
   }

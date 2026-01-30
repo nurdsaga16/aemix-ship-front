@@ -9,13 +9,13 @@ import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
 import ProfileView from '@/views/auth/ProfileView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getRoleFromToken } from '@/lib/auth'
-import AllOrdersView from '@/views/admin/AllOrdersView.vue'
-import AllOrderDetailsView from '@/views/admin/AllOrderDetailsView.vue'
+import AdminOrdersView from '@/views/admin/AdminOrdersView.vue'
+import AdminOrderDetailsView from '@/views/admin/AdminOrderDetailsView.vue'
 import AdminUploadOrdersView from '@/views/admin/AdminUploadOrdersView.vue'
 import AdminUsersView from '@/views/admin/AdminUsersView.vue'
 import AdminPointsView from '@/views/admin/AdminPointsView.vue'
 import AdminScanLogsView from '@/views/admin/AdminScanLogsView.vue'
-import ScanPage from '@/views/admin/ScanPage.vue'
+import AdminScanPage from '@/views/admin/AdminScanPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -64,13 +64,13 @@ const router = createRouter({
     {
       path: '/all-orders',
       name: 'all-orders',
-      component: AllOrdersView,
+      component: AdminOrdersView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
       path: '/all-orders/:orderId',
       name: 'all-order-details',
-      component: AllOrderDetailsView,
+      component: AdminOrderDetailsView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
@@ -100,7 +100,7 @@ const router = createRouter({
     {
       path: '/scan',
       name: 'scan',
-      component: ScanPage,
+      component: AdminScanPage,
       meta: { requiresAuth: true, role: 'ADMIN' },
     }
   ],

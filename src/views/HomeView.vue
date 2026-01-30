@@ -62,8 +62,23 @@ const menuItems = computed(() => {
           :key="item.id"
           @click="onNavigate(item.id)"
           :delay="0.2 + index * 0.1"
+          :class="item.featured ? 'border-primary/30 bg-primary/5' : ''"
         >
-          <div class="flex items-center justify-between">
+          <div v-if="item.featured" class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center">
+                <component :is="item.icon" class="w-7 h-7 text-primary" />
+              </div>
+              <div>
+                <span class="text-caps text-sm">{{ item.label }}</span>
+                <p class="text-muted-foreground text-xs mt-1">
+                  {{ item.subtitle }}
+                </p>
+              </div>
+            </div>
+            <ChevronRight class="w-5 h-5 text-primary" />
+          </div>
+          <div v-else class="flex items-center justify-between">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <component :is="item.icon" class="w-6 h-6 text-primary" />

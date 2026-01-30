@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@teckel/vue-barcode-reader": "^1.1.8",
     "axios": "^1.13.3",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.563.0",

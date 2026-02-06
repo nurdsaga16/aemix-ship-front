@@ -81,13 +81,13 @@ onMounted(() => {
             :href="guide.link"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center justify-between w-full text-inherit no-underline -m-5 p-5 rounded-[32px] hover:opacity-90 transition-opacity"
+            class="flex items-center gap-4 w-full text-inherit no-underline hover:opacity-90 transition-opacity"
           >
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 min-w-12 min-h-12 rounded-2xl bg-primary/10 inline-flex items-center justify-center shrink-0">
-                <component :is="guide.icon" class="w-6 h-6 shrink-0 text-primary" :stroke-width="2" />
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <component :is="guide.icon" class="w-6 h-6 text-primary" />
               </div>
-              <div>
+              <div class="min-w-0">
                 <p class="text-caps text-sm mb-0.5">{{ guide.title }}</p>
                 <p class="text-muted-foreground text-xs">{{ guide.subtitle }}</p>
               </div>
@@ -99,8 +99,8 @@ onMounted(() => {
             class="flex items-center justify-between"
           >
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 min-w-12 min-h-12 rounded-2xl bg-primary/10 inline-flex items-center justify-center shrink-0">
-                <component :is="guide.icon" class="w-6 h-6 shrink-0 text-primary" :stroke-width="2" />
+              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <component :is="guide.icon" class="w-6 h-6 text-primary" />
               </div>
               <div>
                 <p class="text-caps text-sm mb-0.5">{{ guide.title }}</p>
@@ -131,8 +131,8 @@ onMounted(() => {
               v-else
               class="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground"
             >
-              <div class="w-16 h-16 min-w-16 min-h-16 rounded-full bg-primary/20 inline-flex items-center justify-center shrink-0">
-                <Film class="w-8 h-8 shrink-0 text-primary" :stroke-width="2" />
+              <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Film class="w-8 h-8 text-primary" />
               </div>
               <p class="text-xs text-center px-4">
                 <template v-if="isSuperAdmin">

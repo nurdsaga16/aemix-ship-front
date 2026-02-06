@@ -104,6 +104,8 @@ const cancelEdit = (user) => {
 
 const saveEdit = async (user) => {
   saveError.value = null
+
+  user.isEditing = false
   try {
     await userStore.updateUser(user.emailOrTelegramId, { role: user.draftRole })
     user.role = user.draftRole

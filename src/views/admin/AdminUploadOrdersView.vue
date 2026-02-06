@@ -262,14 +262,8 @@ const handleUpload = async () => {
           Загрузка завершена.
         </p>
         <p class="text-xs text-muted-foreground">
-          Всего: {{ uploadResult.total }}, создано: {{ uploadResult.created }}, пропущено:
+          Всего: {{ uploadResult.total }}, успешно: {{ uploadResult.created }}, пропущено:
           {{ uploadResult.skipped }}.
-        </p>
-        <p v-if="uploadResult.errors?.length" class="text-xs text-muted-foreground mt-1">
-          Ошибки:
-          <span class="break-all">
-            {{ uploadResult.errors.join(', ') }}
-          </span>
         </p>
       </GlassCard>
 

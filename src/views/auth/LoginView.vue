@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { LogIn } from 'lucide-vue-next'
 
@@ -10,7 +10,6 @@ import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const telegramWidgetId = 'telegram-login-widget'
 
 const email = ref('')
 const password = ref('')
@@ -36,85 +35,6 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
-
-const handleTelegramLogin = () => {
-  const widget = document.getElementById(telegramWidgetId)
-  if (widget) {
-    widget.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-}
-
-const injectTelegramWidget = () => {
-  if (document.getElementById(telegramWidgetId)) return
-
-  window.onTelegramAuth = async (user) => {
-    try {
-      const result = await authStore.loginWithTelegram(user)
-      if (result?.isVerified === false && result.emailOrTelegramId) {
-        router.push({ path: '/verify', query: { emailOrTelegramId: result.emailOrTelegramId } })
-      } else {
-        router.push('/')
-      }
-    } catch (e) {
-      error.value = 'Ошибка входа через Telegram'
-    }
-  }
-
-  const script = document.createElement('script')
-  script.id = telegramWidgetId
-  script.async = true
-  script.src = 'https://telegram.org/js/telegram-widget.js?22'
-  script.setAttribute('data-telegram-login', 'aemix_ship_bot')
-  script.setAttribute('data-size', 'large')
-  script.setAttribute('data-userpic', 'false')
-  script.setAttribute(
-    'data-auth-url',
-    'https://aemix-ship-front.vercel.app/login',
-  )
-  script.setAttribute('data-request-access', 'write')
-
-  document.getElementById('telegram-login-container')?.appendChild(script)
-}
-
-onMounted(() => {
-  const params = new URLSearchParams(window.location.search)
-  const hash = params.get('hash')
-  if (hash) {
-    const payload = {
-      id: Number(params.get('id')),
-      first_name: params.get('first_name'),
-      last_name: params.get('last_name'),
-      username: params.get('username'),
-      photo_url: params.get('photo_url'),
-      auth_date: Number(params.get('auth_date')),
-      hash,
-    }
-    authStore
-      .loginWithTelegram(payload)
-      .then((result) => {
-        if (result?.isVerified === false && result.emailOrTelegramId) {
-          router.replace({ path: '/verify', query: { emailOrTelegramId: result.emailOrTelegramId } })
-        } else {
-          router.push('/')
-        }
-      })
-      .catch(() => {
-        error.value = 'Ошибка входа через Telegram'
-      })
-      .finally(() => {
-        if (window.location.pathname === '/login') {
-          router.replace({ path: '/login' })
-        }
-      })
-  }
-  injectTelegramWidget()
-})
-
-onBeforeUnmount(() => {
-  if (window.onTelegramAuth) {
-    delete window.onTelegramAuth
-  }
-})
 
 const goBack = () => {
   router.push('/')
@@ -192,21 +112,16 @@ const goToForgotPassword = () => {
                   />
                 </button>
 
-                <div class="relative w-full mb-4">
-                  <button
-                    class="w-full py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-                    style="background-color: #229ED9; color: white;"
-                    @click="handleTelegramLogin"
-                  >
-                    <TelegramIcon />
-                    <span>ВОЙТИ С TELEGRAM</span>
-                  </button>
-
-                  <div
-                    id="telegram-login-container"
-                    class="absolute inset-0 w-full h-full opacity-0 pointer-events-auto"
-                  />
-                </div>
+                <a
+                  href="https://t.me/aemix_ship_bot?start=login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-full mb-4 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all no-underline"
+                  style="background-color: #229ED9; color: white;"
+                >
+                  <TelegramIcon />
+                  <span>ВОЙТИ С TELEGRAM</span>
+                </a>
 
                 <div class="flex items-center justify-between text-xs text-muted-foreground">
                   <button

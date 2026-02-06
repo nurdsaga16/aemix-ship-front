@@ -1,16 +1,14 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Mail, Lock, UserPlus } from 'lucide-vue-next'
+import { UserPlus } from 'lucide-vue-next'
 
 import GlassCard from '@/components/GlassCard.vue'
 import Header from '@/components/Header.vue'
-import TelegramIcon from '@/components/TelegramIcon.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const telegramWidgetId = 'telegram-register-widget'
 
 const email = ref('')
 const password = ref('')
@@ -34,51 +32,6 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
-
-const handleTelegramLogin = () => {
-  const widget = document.getElementById(telegramWidgetId)
-  if (widget) {
-    widget.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-}
-
-const injectTelegramWidget = () => {
-  if (document.getElementById(telegramWidgetId)) return
-
-  window.onTelegramRegister = async (user) => {
-    try {
-      await authStore.loginWithTelegram(user)
-      router.push('/')
-    } catch (e) {
-      error.value = 'Ошибка входа через Telegram'
-    }
-  }
-
-  const script = document.createElement('script')
-  script.id = telegramWidgetId
-  script.async = true
-  script.src = 'https://telegram.org/js/telegram-widget.js?22'
-  script.setAttribute('data-telegram-login', 'aemixshipbot')
-  script.setAttribute('data-size', 'large')
-  script.setAttribute('data-userpic', 'false')
-  script.setAttribute(
-    'data-auth-url',
-    'https://aemix-ship-front.vercel.app/login',
-  )
-  script.setAttribute('data-request-access', 'write')
-
-  document.getElementById('telegram-register-container')?.appendChild(script)
-}
-
-onMounted(() => {
-  injectTelegramWidget()
-})
-
-onBeforeUnmount(() => {
-  if (window.onTelegramRegister) {
-    delete window.onTelegramRegister
-  }
-})
 
 const goBack = () => {
   router.push('/')
@@ -151,22 +104,6 @@ const goToLogin = () => {
                     class="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"
                   />
                 </button>
-
-                <div class="relative w-full mb-4">
-                  <button
-                    class="w-full py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-                    style="background-color: #229ED9; color: white;"
-                    @click="handleTelegramLogin"
-                  >
-                    <TelegramIcon />
-                    <span>ВОЙТИ С TELEGRAM</span>
-                  </button>
-
-                  <div
-                    id="telegram-register-container"
-                    class="absolute inset-0 w-full h-full opacity-0 pointer-events-auto"
-                  />
-                </div>
 
                 <button
                   type="button"

@@ -5,6 +5,7 @@ import { getRoleFromToken } from '@/lib/auth'
 
 const MainApp = () => import('@/views/MainApp.vue')
 const LoginView = () => import('@/views/auth/LoginView.vue')
+const TelegramCallbackView = () => import('@/views/auth/TelegramCallbackView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
 const VerifyView = () => import('@/views/auth/VerifyView.vue')
 const ForgotPasswordView = () => import('@/views/auth/ForgotPasswordView.vue')
@@ -37,6 +38,11 @@ const router = createRouter({
       name: 'login',
       component: LoginView,
       meta: { guestOnly: true },
+    },
+    {
+      path: '/telegram/callback',
+      name: 'telegram-callback',
+      component: TelegramCallbackView,
     },
     {
       path: '/register',

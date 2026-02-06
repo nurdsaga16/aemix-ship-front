@@ -18,6 +18,8 @@ const isSubmitting = ref(false)
 const error = ref('')
 const success = ref('')
 
+const isTelegramUser = computed(() => !!authStore.authData?.telegramId)
+
 const identifier = computed(() => {
   const data = authStore.authData
   if (!data) return ''
@@ -111,7 +113,10 @@ const goBack = () => {
             </div>
           </GlassCard>
 
-          <GlassCard :delay="0.15">
+          <GlassCard
+            v-if="!isTelegramUser"
+            :delay="0.15"
+          >
             <button
               type="button"
               class="w-full flex items-center justify-between gap-2 text-left"

@@ -15,7 +15,6 @@ import {
   Users,
   ScanLine,
   QrCode,
-  Link2,
 } from 'lucide-vue-next'
 import { useOrdersStore } from '@/stores/useOrdersStore'
 
@@ -59,9 +58,7 @@ const handleNavigate = (screen) => {
     }
   }
   if (screen.startsWith('admin-') || screen === 'all-orders') {
-    if (screen === 'admin-instructions') {
-      if (userRole.value !== 'SUPER_ADMIN') return
-    } else if (userRole.value !== 'ADMIN' && userRole.value !== 'SUPER_ADMIN') {
+    if (userRole.value !== 'ADMIN' && userRole.value !== 'SUPER_ADMIN') {
       return
     }
   }
@@ -72,7 +69,6 @@ const handleNavigate = (screen) => {
     'admin-users': '/admin/users',
     'admin-scan-logs': '/admin/scan-logs',
     'admin-scan': '/admin/scan',
-    'admin-instructions': '/admin/instructions',
     'orders': '/orders',
     'add': '/orders/add',
     'instructions': '/instructions',
@@ -91,7 +87,7 @@ const menuItems = computed(() => {
   ]
 
   if (userRole.value === 'ADMIN' || userRole.value === 'SUPER_ADMIN') {
-    const adminItems = [
+    return [
       { id: 'all-orders', label: 'ВСЕ ЗАКАЗЫ', icon: Layers },
       { id: 'admin-upload', label: 'ИМПОРТ ЗАКАЗОВ', icon: UploadCloud },
       { id: 'admin-users', label: 'ВСЕ ПОЛЬЗОВАТЕЛИ', icon: Users },
@@ -105,14 +101,6 @@ const menuItems = computed(() => {
       },
       ...common,
     ]
-    if (userRole.value === 'SUPER_ADMIN') {
-      adminItems.splice(adminItems.length - common.length, 0, {
-        id: 'admin-instructions',
-        label: 'ССЫЛКИ ИНСТРУКЦИЙ',
-        icon: Link2,
-      })
-    }
-    return adminItems
   }
 
   if (userRole.value === 'USER') {

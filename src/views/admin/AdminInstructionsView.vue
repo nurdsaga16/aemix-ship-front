@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { BookOpen, Save } from 'lucide-vue-next'
+import { Smartphone, Play, BookOpen, Save } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import PageLayout from '@/components/PageLayout.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -15,15 +15,27 @@ const router = useRouter()
 const linksStore = useInstructionLinksStore()
 
 const editingId = ref(null)
+const editingItem = ref(null)
+const editTitle = ref('')
 const editLink = ref('')
 const editSubtitle = ref('')
 const saveError = ref('')
 const isSaving = ref(false)
 
-const handleBack = () => router.push('/')
+const iconMap = {
+  pinduoduo: Smartphone,
+  alipay: Play,
+  tracking: BookOpen,
+}
+
+const getIcon = (linkKey) => iconMap[linkKey] || BookOpen
+
+const handleBack = () => router.push('/instructions')
 
 const startEdit = (item) => {
   editingId.value = item.id
+  editingItem.value = item
+  editTitle.value = item.title || ''
   editLink.value = item.link || ''
   editSubtitle.value = item.subtitle || ''
   saveError.value = ''
@@ -31,6 +43,8 @@ const startEdit = (item) => {
 
 const cancelEdit = () => {
   editingId.value = null
+  editingItem.value = null
+  editTitle.value = ''
   editLink.value = ''
   editSubtitle.value = ''
   saveError.value = ''
@@ -42,6 +56,7 @@ const saveEdit = async () => {
   saveError.value = ''
   try {
     await linksStore.updateLink(editingId.value, {
+      title: editTitle.value.trim() || (editingItem.value?.title ?? ''),
       link: editLink.value.trim() || '#',
       subtitle: editSubtitle.value.trim() || '',
     })
@@ -81,8 +96,8 @@ onMounted(() => {
         >
           <div class="flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <BookOpen class="w-5 h-5 text-primary" />
+              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <component :is="getIcon(item.linkKey)" class="w-6 h-6 text-primary" />
               </div>
               <div>
                 <p class="text-caps text-sm">{{ item.title }}</p>
@@ -91,6 +106,14 @@ onMounted(() => {
             </div>
 
             <template v-if="editingId === item.id">
+              <div>
+                <FormLabel margin="mb-2">Заголовок</FormLabel>
+                <AppInput
+                  v-model="editTitle"
+                  placeholder="Например: PINDUODUO"
+                  @keyup.enter="saveEdit"
+                />
+              </div>
               <div>
                 <FormLabel margin="mb-2">Ссылка</FormLabel>
                 <AppInput

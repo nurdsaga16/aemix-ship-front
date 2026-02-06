@@ -23,9 +23,10 @@ export const useInstructionLinksStore = defineStore('instructionLinks', () => {
     }
   }
 
-  async function updateLink(id, { link, subtitle }) {
+  async function updateLink(id, { title, link, subtitle }) {
     try {
       const { data } = await api.put(`/admin/instruction-links/${id}`, {
+        title: title ?? '',
         link: link || '#',
         subtitle: subtitle ?? '',
       })

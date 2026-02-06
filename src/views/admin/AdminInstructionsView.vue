@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Smartphone, Play, BookOpen, Save } from 'lucide-vue-next'
+import { Smartphone, Play, BookOpen, Film, Save } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import PageLayout from '@/components/PageLayout.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -26,6 +26,7 @@ const iconMap = {
   pinduoduo: Smartphone,
   alipay: Play,
   tracking: BookOpen,
+  video: Film,
 }
 
 const getIcon = (linkKey) => iconMap[linkKey] || BookOpen
@@ -115,11 +116,13 @@ onMounted(() => {
                 />
               </div>
               <div>
-                <FormLabel margin="mb-2">Ссылка</FormLabel>
+                <FormLabel margin="mb-2">
+                  {{ item.linkKey === 'video' ? 'Ссылка на видео (YouTube или Vimeo)' : 'Ссылка' }}
+                </FormLabel>
                 <AppInput
                   v-model="editLink"
                   type="url"
-                  placeholder="https://..."
+                  :placeholder="item.linkKey === 'video' ? 'https://youtube.com/watch?v=... или https://vimeo.com/...' : 'https://...'"
                   @keyup.enter="saveEdit"
                 />
               </div>

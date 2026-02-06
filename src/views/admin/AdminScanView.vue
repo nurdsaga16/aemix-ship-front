@@ -28,6 +28,14 @@ const isSubmitting = ref(false)
 const DECODE_COOLDOWN_MS = 1500
 const scansHistory = ref([])
 
+const statusLabels = {
+  UNKNOWN: 'Из Китая',
+  INTERNATIONAL_SHIPPING: 'В пути',
+  ARRIVED: 'Прибыл',
+  READY: 'Готов',
+}
+const formatStatusName = (name) => statusLabels[name] ?? name ?? '—'
+
 onMounted(async () => {
   try {
     await scanLogsStore.fetchLogs({ page: 0, size: 20 })
@@ -274,7 +282,7 @@ const handleCameraError = () => {
                   {{ scan.trackCode }}
                 </td>
                 <td class="py-3 pr-4 text-xs text-foreground">
-                  {{ scan.statusName }}
+                  {{ formatStatusName(scan.statusName) }}
                 </td>
                 <td class="py-3 pr-4 text-xs text-muted-foreground">
                   {{ scan.time }}

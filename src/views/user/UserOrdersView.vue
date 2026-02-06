@@ -25,6 +25,7 @@ const pageSize = ref(20)
 
 const filters = [
   { id: 'all', label: 'ВСЕ' },
+  { id: 'from_china', label: 'ИЗ КИТАЯ' },
   { id: 'shipped', label: 'В ПУТИ' },
   { id: 'arrived', label: 'ПРИБЫЛ' },
   { id: 'ready', label: 'ГОТОВ' },
@@ -52,6 +53,7 @@ const loadOrders = (page = 0) => {
       : 'CREATED_DESC'
 
   const statusMap = {
+    from_china: 'UNKNOWN',
     shipped: 'INTERNATIONAL_SHIPPING',
     arrived: 'ARRIVED',
     ready: 'READY',

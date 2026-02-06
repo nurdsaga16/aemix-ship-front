@@ -38,6 +38,7 @@ const isBulkReadyLoading = ref(false)
 
 const filters = [
   { id: 'all', label: 'ВСЕ' },
+  { id: 'from_china', label: 'ИЗ КИТАЯ' },
   { id: 'shipped', label: 'В ПУТИ' },
   { id: 'arrived', label: 'ПРИБЫЛ' },
   { id: 'ready', label: 'ГОТОВ' },
@@ -51,6 +52,7 @@ const sortOptions = [
 
 const statusMap = {
   all: null,
+  from_china: 'UNKNOWN',
   shipped: 'INTERNATIONAL_SHIPPING',
   arrived: 'ARRIVED',
   ready: 'READY',

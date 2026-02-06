@@ -30,7 +30,8 @@ const currentUserRole = computed(() => getRoleFromToken(authStore.authData?.toke
 
 const canEditOrDeleteUser = (user) => {
   if (currentUserRole.value !== 'SUPER_ADMIN') return false
-  return user.emailOrTelegramId !== currentUserIdentifier.value
+  if (user.role === 'SUPER_ADMIN') return false
+  return true
 }
 
 const searchQuery = ref('')

@@ -6,7 +6,7 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['shipped', 'arrived', 'ready'].includes(value)
+    validator: (value) => ['from_china', 'shipped', 'arrived', 'ready'].includes(value)
   },
   className: {
     type: String,
@@ -15,6 +15,12 @@ const props = defineProps({
 })
 
 const statusConfig = {
+  from_china: {
+    label: 'ИЗ КИТАЯ',
+    emoji: '🇨🇳',
+    bgClass: 'bg-sky-500/20',
+    textClass: 'text-sky-400',
+  },
   shipped: {
     label: 'В ПУТИ',
     emoji: '🟡',

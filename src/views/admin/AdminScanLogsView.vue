@@ -26,9 +26,10 @@ const cityOptions = ref([])
 
 const statusOptions = [
   { id: 'all', label: 'Все статусы' },
-  { id: 'INTERNATIONAL_SHIPPING', label: 'INTERNATIONAL_SHIPPING' },
-  { id: 'ARRIVED', label: 'ARRIVED' },
-  { id: 'READY', label: 'READY' },
+  { id: 'UNKNOWN', label: 'Из Китая' },
+  { id: 'INTERNATIONAL_SHIPPING', label: 'В пути' },
+  { id: 'ARRIVED', label: 'Прибыл' },
+  { id: 'READY', label: 'Готов' },
 ]
 
 const parseDate = (value) => {
@@ -50,9 +51,22 @@ const formatDateTime = (value) => {
   })
 }
 
+const statusLabel = (status) => {
+  const labels = {
+    UNKNOWN: 'Из Китая',
+    INTERNATIONAL_SHIPPING: 'В пути',
+    ARRIVED: 'Прибыл',
+    READY: 'Готов',
+    PENDING: 'Ожидание',
+  }
+  return labels[status] ?? status ?? '—'
+}
+
 const statusClass = (status) => {
   const base = 'px-2.5 py-1 rounded-full text-[10px] tracking-[0.18em] uppercase'
   switch (status) {
+    case 'UNKNOWN':
+      return `${base} bg-sky-500/20 text-sky-400`
     case 'INTERNATIONAL_SHIPPING':
       return `${base} bg-yellow-500/20 text-yellow-300`
     case 'ARRIVED':
@@ -224,11 +238,11 @@ onMounted(async () => {
               </div>
               <div class="flex flex-wrap items-center gap-2 md:justify-end">
                 <span :class="statusClass(log.oldStatus)">
-                  {{ log.oldStatus }}
+                  {{ statusLabel(log.oldStatus) }}
                 </span>
                 <span class="text-xs text-muted-foreground">→</span>
                 <span :class="statusClass(log.newStatus)">
-                  {{ log.newStatus }}
+                  {{ statusLabel(log.newStatus) }}
                 </span>
               </div>
             </div>

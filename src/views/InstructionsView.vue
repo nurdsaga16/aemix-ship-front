@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted } from 'vue'
-import { Smartphone, Play, BookOpen, ExternalLink, Settings } from 'lucide-vue-next'
+import { Smartphone, Play, BookOpen, ExternalLink, Settings, Film } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import PageLayout from '@/components/PageLayout.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -9,6 +9,7 @@ import Loader from '@/components/Loader.vue'
 import { useInstructionLinksStore } from '@/stores/useInstructionLinksStore'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getRoleFromToken } from '@/lib/auth'
+import { getVideoEmbedUrl } from '@/composables/useVideoEmbed'
 
 const authStore = useAuthStore()
 const isSuperAdmin = computed(() => getRoleFromToken(authStore.authData?.token) === 'SUPER_ADMIN')
@@ -17,14 +18,25 @@ const iconMap = {
   pinduoduo: Smartphone,
   alipay: Play,
   tracking: BookOpen,
+  video: Film,
 }
 
 const linksStore = useInstructionLinksStore()
 const guides = computed(() =>
-  linksStore.links.map((g) => ({
-    ...g,
-    icon: iconMap[g.linkKey] || BookOpen,
-  })),
+  linksStore.links
+    .filter((g) => g.linkKey !== 'video')
+    .map((g) => ({
+      ...g,
+      icon: iconMap[g.linkKey] || BookOpen,
+    })),
+)
+
+const videoLink = computed(() =>
+  linksStore.links.find((g) => g.linkKey === 'video'),
+)
+
+const videoEmbedUrl = computed(() =>
+  videoLink.value?.link ? getVideoEmbedUrl(videoLink.value.link) : null,
 )
 
 onMounted(() => {
@@ -100,17 +112,43 @@ onMounted(() => {
         </GlassCard>
       </div>
 
-      <div class="mt-8">
+      <div v-if="videoLink" class="mt-8">
         <h2 class="text-caps text-sm text-muted-foreground mb-4">ВИДЕО-ИНСТРУКЦИИ</h2>
-        
+
         <GlassCard :delay="0.5">
-          <div class="aspect-video rounded-2xl bg-glass/40 flex items-center justify-center mb-4">
-            <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <Play class="w-8 h-8 text-primary ml-1" />
+          <div
+            class="aspect-video rounded-2xl overflow-hidden bg-black/40 mb-4"
+          >
+            <iframe
+              v-if="videoEmbedUrl"
+              :src="videoEmbedUrl"
+              class="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              title="Видео-инструкция"
+            />
+            <div
+              v-else
+              class="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground"
+            >
+              <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+                <Film class="w-8 h-8 text-primary" />
+              </div>
+              <p class="text-xs text-center px-4">
+                <template v-if="isSuperAdmin">
+                  Добавьте ссылку на YouTube или Vimeo в разделе
+                  <router-link to="/admin/instructions" class="text-primary hover:underline">
+                    «Редактировать ссылки»
+                  </router-link>
+                </template>
+                <template v-else>
+                  Видео будет добавлено позже
+                </template>
+              </p>
             </div>
           </div>
-          <p class="text-caps text-sm">КАК ЗАКАЗАТЬ НА PINDUODUO</p>
-          <p class="text-muted-foreground text-xs">Полный гайд • 12 мин</p>
+          <p class="text-caps text-sm">{{ videoLink.title }}</p>
+          <p class="text-muted-foreground text-xs">{{ videoLink.subtitle }}</p>
         </GlassCard>
       </div>
     </PageMain>

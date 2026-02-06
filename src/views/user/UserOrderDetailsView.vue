@@ -126,6 +126,7 @@ watch(() => route.params.trackCode, () => {
 })
 
 const statusInfo = {
+  from_china: { emoji: '🇨🇳', label: 'ИЗ КИТАЯ', step: 0 },
   pending: { emoji: '⏳', label: 'ОЖИДАНИЕ', step: 0 },
   shipped: { emoji: '🟡', label: 'В ПУТИ', step: 1 },
   arrived: { emoji: '🟢', label: 'ПРИБЫЛ', step: 2 },

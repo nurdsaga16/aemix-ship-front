@@ -16,12 +16,16 @@ export const useOrdersStore = defineStore('orders', () => {
 
   function mapStatus(apiStatus) {
     switch (apiStatus) {
+      case 'UNKNOWN':
+        return 'from_china'
       case 'INTERNATIONAL_SHIPPING':
         return 'shipped'
       case 'ARRIVED':
         return 'arrived'
       case 'READY':
         return 'ready'
+      default:
+        return 'from_china'
     }
   }
 

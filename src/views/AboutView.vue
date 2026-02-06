@@ -1,31 +1,17 @@
 <script setup>
-import { ArrowLeft, Globe, Mail, MapPin } from 'lucide-vue-next'
+import { Globe, Mail, MapPin } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import Logo from '@/components/Logo.vue'
-
-defineProps({
-  onBack: {
-    type: Function,
-    required: true
-  }
-})
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <!-- Header -->
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="onBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <h1 class="text-caps text-lg">О КОМПАНИИ</h1>
-    </header>
+  <PageLayout>
+    <PageHeader title="О КОМПАНИИ" />
 
-    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
-      <!-- Logo Card -->
+    <PageMain>
       <GlassCard class="mb-6 text-center" :delay="0.1">
         <div class="flex justify-center mb-4">
           <Logo size="large" />
@@ -34,7 +20,6 @@ defineProps({
         <p class="text-accent-italic text-sm">Galaxy Delivery</p>
       </GlassCard>
 
-      <!-- About Text -->
       <GlassCard :delay="0.2">
         <p class="text-muted-foreground text-sm leading-relaxed mb-4">
           AEMIX Galaxy — ваш надёжный партнёр в доставке товаров из Китая. 
@@ -45,7 +30,6 @@ defineProps({
         </p>
       </GlassCard>
 
-      <!-- Contact Info -->
       <div class="mt-8">
         <h2 class="text-caps text-xs text-muted-foreground mb-3">КОНТАКТЫ</h2>
         
@@ -88,10 +72,9 @@ defineProps({
         </div>
       </div>
 
-      <!-- Version -->
       <p class="text-center text-muted-foreground text-xs mt-8">
         Версия 1.0.0 • © 2026 AEMIX Galaxy
       </p>
-    </main>
-  </div>
+    </PageMain>
+  </PageLayout>
 </template>

@@ -1,69 +1,35 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ArrowLeft, ScanLine, ChevronDown } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { ScanLine } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
+import Pagination from '@/components/Pagination.vue'
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
+import AppSelect from '@/components/AppSelect.vue'
+import FormLabel from '@/components/FormLabel.vue'
+import { PAGE_SIZE_OPTIONS } from '@/constants/pagination'
+import { useScanLogsStore } from '@/stores/useScanLogsStore'
 
-const router = useRouter()
-
-const logs = ref([
-  {
-    id: 1,
-    trackCode: 'SF1234567890123',
-    pickup: 'Москва, ул. Тверская, 12',
-    operator: 'admin@aemix.com',
-    oldStatus: 'INTERNATIONAL_SHIPPING',
-    newStatus: 'ARRIVED',
-    source: 'customs',
-    scannedAt: '2026-01-22 14:30',
-  },
-  {
-    id: 2,
-    trackCode: 'YT9876543210987',
-    pickup: 'Краснодар, ул. Красная, 88',
-    operator: 'operator@aemix.com',
-    oldStatus: 'ARRIVED',
-    newStatus: 'READY',
-    source: 'pickup',
-    scannedAt: '2026-01-22 18:12',
-  },
-  {
-    id: 3,
-    trackCode: 'JD5555666677778',
-    pickup: 'Москва, ул. Тверская, 12',
-    operator: 'admin@aemix.com',
-    oldStatus: 'INTERNATIONAL_SHIPPING',
-    newStatus: 'ARRIVED',
-    source: 'customs',
-    scannedAt: '2026-01-21 09:05',
-  },
-  {
-    id: 4,
-    trackCode: 'SF1111222233334',
-    pickup: 'Санкт-Петербург, Невский пр-т, 45',
-    operator: 'operator@aemix.com',
-    oldStatus: 'ARRIVED',
-    newStatus: 'READY',
-    source: 'pickup',
-    scannedAt: '2026-01-20 16:48',
-  },
-])
+const scanLogsStore = useScanLogsStore()
 
 const operatorFilter = ref('all')
-const pickupFilter = ref('all')
+const cityFilter = ref('all')
 const statusFilter = ref('all')
-const sourceFilter = ref('all')
 const fromDate = ref('')
 const toDate = ref('')
+const pageSize = ref(20)
+
+const pageSizeOptions = [10, 20, 50, 100]
 
 const operatorOptions = computed(() => {
-  const operators = logs.value.map((log) => log.operator)
+  const operators = scanLogsStore.logs.map((log) => log.operator).filter(Boolean)
   return Array.from(new Set(operators))
 })
 
-const pickupOptions = computed(() => {
-  const pickups = logs.value.map((log) => log.pickup)
-  return Array.from(new Set(pickups))
+const cityOptions = computed(() => {
+  const cities = scanLogsStore.logs.map((log) => log.cityName).filter(Boolean)
+  return Array.from(new Set(cities))
 })
 
 const statusOptions = [
@@ -73,16 +39,23 @@ const statusOptions = [
   { id: 'READY', label: 'READY' },
 ]
 
-const sourceOptions = [
-  { id: 'all', label: 'Все источники' },
-  { id: 'customs', label: 'Таможня' },
-  { id: 'pickup', label: 'Пункт выдачи' },
-]
-
 const parseDate = (value) => {
   const normalized = String(value || '').replace(' ', 'T')
   const date = new Date(normalized)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+const formatDateTime = (value) => {
+  const date = parseDate(value)
+  if (!date) return value || '—'
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 const statusClass = (status) => {
@@ -105,41 +78,65 @@ const filteredLogs = computed(() => {
   const from = fromDate.value ? new Date(`${fromDate.value}T00:00:00`) : null
   const to = toDate.value ? new Date(`${toDate.value}T23:59:59`) : null
 
-  return logs.value.filter((log) => {
+  return scanLogsStore.logs.filter((log) => {
     const matchesOperator = operatorFilter.value === 'all' || log.operator === operatorFilter.value
-    const matchesPickup = pickupFilter.value === 'all' || log.pickup === pickupFilter.value
+    const matchesCity = cityFilter.value === 'all' || log.cityName === cityFilter.value
     const matchesStatus =
-      statusFilter.value === 'all' ||
-      log.oldStatus === statusFilter.value ||
-      log.newStatus === statusFilter.value
-    const matchesSource = sourceFilter.value === 'all' || log.source === sourceFilter.value
+      statusFilter.value === 'all' || log.newStatus === statusFilter.value
 
     const scannedDate = parseDate(log.scannedAt)
     const matchesFrom = !from || (scannedDate && scannedDate >= from)
     const matchesTo = !to || (scannedDate && scannedDate <= to)
 
-    return matchesOperator && matchesPickup && matchesStatus && matchesSource && matchesFrom && matchesTo
+    return matchesOperator && matchesCity && matchesStatus && matchesFrom && matchesTo
   })
 })
 
-const handleBack = () => {
-  router.push('/')
+const loadLogs = (page = 0) => {
+  const operator = operatorFilter.value === 'all' ? undefined : operatorFilter.value
+  const status = statusFilter.value === 'all' ? undefined : statusFilter.value
+
+  const from =
+    fromDate.value && fromDate.value !== ''
+      ? `${fromDate.value}T00:00:00`
+      : undefined
+  const to =
+    toDate.value && toDate.value !== ''
+      ? `${toDate.value}T23:59:59`
+      : undefined
+
+  return scanLogsStore
+    .fetchLogs({
+      page,
+      size: pageSize.value,
+      operator,
+      status,
+      fromDate: from,
+      toDate: to,
+    })
+    .catch(() => {})
 }
+
+const handlePageSizeChange = (newSize) => {
+  pageSize.value = newSize
+  loadLogs(0)
+}
+
+const goToPage = (page) => {
+  if (page < 0 || page >= scanLogsStore.totalPages || scanLogsStore.loading) return
+  loadLogs(page)
+}
+
+onMounted(() => {
+  loadLogs(0)
+})
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="handleBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <h1 class="text-caps text-lg">ЛОГИ СКАНИРОВАНИЯ</h1>
-    </header>
+  <PageLayout>
+    <PageHeader title="ЛОГИ СКАНИРОВАНИЯ" />
 
-    <main class="px-5 pb-8 space-y-4 md:max-w-3xl md:mx-auto">
+    <PageMain contentClass="space-y-4">
       <GlassCard :delay="0.05">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -148,7 +145,7 @@ const handleBack = () => {
           <div>
             <p class="text-caps text-sm">ИСТОРИЯ СКАНИРОВАНИЙ</p>
             <p class="text-xs text-muted-foreground">
-              Track code, статус, пункт, оператор
+              Track code, статус, город, оператор
             </p>
           </div>
         </div>
@@ -157,87 +154,36 @@ const handleBack = () => {
       <GlassCard :delay="0.08">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ОПЕРАТОР
-            </label>
-            <div class="relative">
-              <select
-                v-model="operatorFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option value="all">Все операторы</option>
-                <option v-for="operator in operatorOptions" :key="operator" :value="operator">
-                  {{ operator }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <FormLabel>ОПЕРАТОР</FormLabel>
+            <AppSelect v-model="operatorFilter">
+              <option value="all">Все операторы</option>
+              <option v-for="operator in operatorOptions" :key="operator" :value="operator">
+                {{ operator }}
+              </option>
+            </AppSelect>
           </div>
 
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ПУНКТ
-            </label>
-            <div class="relative">
-              <select
-                v-model="pickupFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option value="all">Все пункты</option>
-                <option v-for="pickup in pickupOptions" :key="pickup" :value="pickup">
-                  {{ pickup }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <FormLabel>ГОРОД</FormLabel>
+            <AppSelect v-model="cityFilter">
+              <option value="all">Все города</option>
+              <option v-for="city in cityOptions" :key="city" :value="city">
+                {{ city }}
+              </option>
+            </AppSelect>
           </div>
 
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              СТАТУС
-            </label>
-            <div class="relative">
-              <select
-                v-model="statusFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option v-for="status in statusOptions" :key="status.id" :value="status.id">
-                  {{ status.label }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <FormLabel>СТАТУС</FormLabel>
+            <AppSelect v-model="statusFilter">
+              <option v-for="status in statusOptions" :key="status.id" :value="status.id">
+                {{ status.label }}
+              </option>
+            </AppSelect>
           </div>
 
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ИСТОЧНИК
-            </label>
-            <div class="relative">
-              <select
-                v-model="sourceFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option v-for="source in sourceOptions" :key="source.id" :value="source.id">
-                  {{ source.label }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ДАТА ОТ
-            </label>
+            <FormLabel>ДАТА ОТ</FormLabel>
             <input
               v-model="fromDate"
               type="date"
@@ -246,9 +192,7 @@ const handleBack = () => {
           </div>
 
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ДАТА ДО
-            </label>
+            <FormLabel>ДАТА ДО</FormLabel>
             <input
               v-model="toDate"
               type="date"
@@ -259,10 +203,18 @@ const handleBack = () => {
       </GlassCard>
 
       <GlassCard :delay="0.1">
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">Найдено записей</span>
-          <span class="text-foreground font-semibold">{{ filteredLogs.length }}</span>
-        </div>
+        <Pagination
+          :page="scanLogsStore.page"
+          :total-pages="scanLogsStore.totalPages"
+          :total-elements="scanLogsStore.totalElements"
+          :size="scanLogsStore.size || pageSize"
+          :loading="scanLogsStore.loading"
+          :show-page-size="true"
+          :page-size-options="PAGE_SIZE_OPTIONS"
+          item-label="записей"
+          @page-change="goToPage"
+          @page-size-change="handlePageSizeChange"
+        />
       </GlassCard>
 
       <div class="space-y-3">
@@ -275,10 +227,10 @@ const handleBack = () => {
             <div class="min-w-0">
               <p class="text-caps text-sm mb-1">{{ log.trackCode }}</p>
               <p class="text-muted-foreground text-xs">
-                {{ log.pickup }}
+                {{ log.cityName || '—' }}
               </p>
               <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>{{ log.scannedAt }}</span>
+                <span>{{ formatDateTime(log.scannedAt) }}</span>
                 <span class="opacity-60">•</span>
                 <span>{{ log.operator }}</span>
               </div>
@@ -296,19 +248,12 @@ const handleBack = () => {
                   {{ log.newStatus }}
                 </span>
               </div>
-              <div class="mt-3">
-                <span
-                  class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] tracking-[0.18em] uppercase bg-glass/60 text-muted-foreground"
-                >
-                  {{ log.source === 'customs' ? 'Таможня' : 'Пункт выдачи' }}
-                </span>
-              </div>
             </div>
           </div>
         </GlassCard>
       </div>
-    </main>
-  </div>
+    </PageMain>
+  </PageLayout>
 </template>
 
 <style scoped>

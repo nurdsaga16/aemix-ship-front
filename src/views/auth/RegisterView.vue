@@ -26,7 +26,6 @@ const handleSubmit = async () => {
   try {
     const identifier = email.value.trim()
     await authStore.register(identifier, password.value.trim())
-    // помечаем, что пользователь только что прошёл регистрацию
     sessionStorage.setItem('pendingVerificationIdentifier', identifier)
     router.push({ path: '/verify', query: { identifier } })
   } catch (e) {

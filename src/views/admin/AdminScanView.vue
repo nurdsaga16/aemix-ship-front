@@ -1,11 +1,20 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, QrCode } from 'lucide-vue-next'
+import { QrCode } from 'lucide-vue-next'
 import { StreamBarcodeReader } from '@teckel/vue-barcode-reader'
 import GlassCard from '@/components/GlassCard.vue'
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
+import AppInput from '@/components/AppInput.vue'
+import Loader from '@/components/Loader.vue'
+import { useOrdersStore } from '@/stores/useOrdersStore'
+import { useScanLogsStore } from '@/stores/useScanLogsStore'
 
 const router = useRouter()
+const ordersStore = useOrdersStore()
+const scanLogsStore = useScanLogsStore()
 const trackCode = ref('')
 const lastResult = ref(null)
 const isCameraActive = ref(false)
@@ -15,22 +24,24 @@ const lastScannedValue = ref('')
 const lastScannedAt = ref(0)
 const cameraKey = ref(0)
 const cameraStream = ref(null)
-const scansHistory = ref([
-  {
-    id: 1,
-    trackCode: 'SF1234567890123',
-    statusName: 'INTERNATIONAL_SHIPPING',
-    time: '2026-01-22 14:30',
-    result: 'success',
-  },
-  {
-    id: 2,
-    trackCode: 'YT9876543210987',
-    statusName: 'READY',
-    time: '2026-01-22 14:12',
-    result: 'error',
-  },
-])
+const isSubmitting = ref(false)
+const DECODE_COOLDOWN_MS = 1500
+const scansHistory = ref([])
+
+onMounted(async () => {
+  try {
+    await scanLogsStore.fetchLogs({ page: 0, size: 20 })
+
+    scansHistory.value = scanLogsStore.logs.map((log) => ({
+      id: log.id,
+      trackCode: log.trackCode,
+      statusName: log.newStatus,
+      time: log.scannedAt,
+      result: 'success',
+    }))
+  } catch {
+  }
+})
 
 const lastResultClasses = computed(() => {
   if (!lastResult.value) return ''
@@ -39,34 +50,71 @@ const lastResultClasses = computed(() => {
     : 'bg-red-500/15 border-red-500/30 text-red-100'
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+
   const value = trackCode.value.trim()
   if (!value) {
     lastResult.value = { type: 'error', message: 'Введите трек‑код' }
+    isSubmitting.value = false
     return
   }
 
-  lastResult.value = {
-    type: 'success',
-    message: `ОК, заказ ${value} теперь на этапе INTERNATIONAL_SHIPPING`,
+  try {
+    const data = await ordersStore.scanArrived(value)
+
+    lastResult.value = {
+      type: 'success',
+      message: `ОК, заказ ${data.trackCode} теперь на этапе ${data.status}`,
+    }
+    scansHistory.value = [
+      {
+        id: Date.now(),
+        trackCode: data.trackCode,
+        statusName: data.status,
+        time: new Date().toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        result: 'success',
+      },
+      ...scansHistory.value,
+    ].slice(0, 20)
+    trackCode.value = ''
+  } catch (e) {
+    const message =
+      e.response?.data?.message ||
+      e.response?.data?.error ||
+      'Не удалось отсканировать заказ'
+
+    lastResult.value = {
+      type: 'error',
+      message,
+    }
+
+    scansHistory.value = [
+      {
+        id: Date.now(),
+        trackCode: value,
+        statusName: 'ERROR',
+        time: new Date().toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        result: 'error',
+      },
+      ...scansHistory.value,
+    ].slice(0, 20)
+  } finally {
+    isSubmitting.value = false
   }
-  scansHistory.value = [
-    {
-      id: Date.now(),
-      trackCode: value,
-      statusName: 'INTERNATIONAL_SHIPPING',
-      time: new Date().toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      result: 'success',
-    },
-    ...scansHistory.value,
-  ]
-  trackCode.value = ''
 }
 
 const handleToggleCamera = async () => {
@@ -109,9 +157,9 @@ const handleToggleCamera = async () => {
 const handleDecode = (value) => {
   if (!value) return
   const now = Date.now()
-  if (value === lastScannedValue.value && now - lastScannedAt.value < 1500) {
-    return
-  }
+  if (now - lastScannedAt.value < DECODE_COOLDOWN_MS) return
+  if (value === lastScannedValue.value) return
+
   lastScannedValue.value = value
   lastScannedAt.value = now
   isCameraLoading.value = false
@@ -129,26 +177,13 @@ const handleCameraError = () => {
   }
 }
 
-const handleBack = () => {
-  router.push('/')
-}
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="handleBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <div>
-        <h1 class="text-caps text-lg">СКАНИРОВАНИЕ</h1>
-      </div>
-    </header>
+  <PageLayout>
+    <PageHeader title="СКАНИРОВАНИЕ" :on-back="() => router.push('/')" />
 
-    <main class="px-5 pb-8 space-y-6 md:max-w-3xl md:mx-auto">
+    <PageMain contentClass="space-y-6">
       <div class="mx-auto w-full max-w-md space-y-4">
         <GlassCard :delay="0.06">
           <div class="flex items-center justify-between mb-3">
@@ -170,9 +205,10 @@ const handleBack = () => {
               />
               <div
                 v-if="isCameraLoading"
-                class="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground bg-black/30"
+                class="absolute inset-0 flex items-center justify-center gap-2 text-xs text-muted-foreground bg-black/30"
               >
-                Инициализация камеры...
+                <Loader size="sm" />
+                <span>Инициализация камеры...</span>
               </div>
             </div>
             <div v-else class="flex items-center justify-center h-56 text-xs text-muted-foreground">
@@ -188,12 +224,11 @@ const handleBack = () => {
           <p class="text-muted-foreground text-xs mb-3">
             Можно также ввести трек‑код вручную
           </p>
-          <input
+          <AppInput
             v-model="trackCode"
             type="text"
-            autofocus
             placeholder="TRACK CODE"
-            class="w-full bg-glass/40 border border-glass-border rounded-2xl px-4 py-4 text-foreground font-mono text-lg tracking-wider placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+            input-class="font-mono text-lg tracking-wider py-4"
             @keyup.enter="handleSubmit"
           />
           <button
@@ -261,6 +296,6 @@ const handleBack = () => {
           </table>
         </div>
       </GlassCard>
-    </main>
-  </div>
+    </PageMain>
+  </PageLayout>
 </template>

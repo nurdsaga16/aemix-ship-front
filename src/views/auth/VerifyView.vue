@@ -14,11 +14,13 @@ const authStore = useAuthStore()
 const code = ref('')
 const isSubmitting = ref(false)
 const error = ref('')
-const identifier = computed(() => (route.query.identifier || '').toString().trim())
+const emailOrTelegramId = computed(() =>
+  (route.query.identifier || route.query.emailOrTelegramId || '').toString().trim()
+)
 
 const handleSubmit = async () => {
   error.value = ''
-  if (!identifier.value) {
+  if (!emailOrTelegramId.value) {
     error.value = 'Не указан email или Telegram ID.'
     return
   }
@@ -30,7 +32,7 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    await authStore.verify(identifier.value, code.value.trim())
+    await authStore.verify(emailOrTelegramId.value, code.value.trim())
     router.push('/login')
   } catch (e) {
     error.value = 'Неверный код. Попробуйте ещё раз.'
@@ -41,21 +43,19 @@ const handleSubmit = async () => {
 
 const handleResend = async () => {
   error.value = ''
-  if (!identifier.value) {
+  if (!emailOrTelegramId.value) {
     error.value = 'Не указан email или Telegram ID.'
     return
   }
   try {
-    await authStore.resendVerificationCode(identifier.value)
+    await authStore.resendVerificationCode(emailOrTelegramId.value)
   } catch (e) {
     error.value = 'Не удалось отправить код повторно.'
   }
 }
 
 onMounted(() => {
-  const stored = sessionStorage.getItem('pendingVerificationIdentifier') || ''
-  if (!identifier.value || stored !== identifier.value) {
-    // если нет ожидаемой регистрации — отправляем обратно на /register
+  if (!emailOrTelegramId.value) {
     router.replace('/register')
   }
 })

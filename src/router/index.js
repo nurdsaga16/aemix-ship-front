@@ -1,21 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import MainApp from '@/views/MainApp.vue'
-import LoginView from '@/views/auth/LoginView.vue'
-import RegisterView from '@/views/auth/RegisterView.vue'
-import VerifyView from '@/views/auth/VerifyView.vue'
-import ForgotPasswordView from '@/views/auth/ForgotPasswordView.vue'
-import ResetPasswordView from '@/views/auth/ResetPasswordView.vue'
-import ProfileView from '@/views/auth/ProfileView.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getRoleFromToken } from '@/lib/auth'
-import AdminOrdersView from '@/views/admin/AdminOrdersView.vue'
-import AdminOrderDetailsView from '@/views/admin/AdminOrderDetailsView.vue'
-import AdminUploadOrdersView from '@/views/admin/AdminUploadOrdersView.vue'
-import AdminUsersView from '@/views/admin/AdminUsersView.vue'
-import AdminPointsView from '@/views/admin/AdminPointsView.vue'
-import AdminScanLogsView from '@/views/admin/AdminScanLogsView.vue'
-import AdminScanPage from '@/views/admin/AdminScanPage.vue'
+
+const MainApp = () => import('@/views/MainApp.vue')
+const LoginView = () => import('@/views/auth/LoginView.vue')
+const RegisterView = () => import('@/views/auth/RegisterView.vue')
+const VerifyView = () => import('@/views/auth/VerifyView.vue')
+const ForgotPasswordView = () => import('@/views/auth/ForgotPasswordView.vue')
+const ResetPasswordView = () => import('@/views/auth/ResetPasswordView.vue')
+const ProfileView = () => import('@/views/auth/ProfileView.vue')
+const AdminOrdersView = () => import('@/views/admin/AdminOrdersView.vue')
+const AdminOrderDetailsView = () => import('@/views/admin/AdminOrderDetailsView.vue')
+const AdminUploadOrdersView = () => import('@/views/admin/AdminUploadOrdersView.vue')
+const AdminUsersView = () => import('@/views/admin/AdminUsersView.vue')
+const AdminScanLogsView = () => import('@/views/admin/AdminScanLogsView.vue')
+const AdminScanView = () => import('@/views/admin/AdminScanView.vue')
+const AdminInstructionsView = () => import('@/views/admin/AdminInstructionsView.vue')
+const UserOrdersView = () => import('@/views/user/UserOrdersView.vue')
+const UserOrderDetailsView = () => import('@/views/user/UserOrderDetailsView.vue')
+const UserAddOrderView = () => import('@/views/user/UserAddOrderView.vue')
+const InstructionsView = () => import('@/views/InstructionsView.vue')
+const AboutView = () => import('@/views/AboutView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,46 +68,76 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/all-orders',
+      path: '/orders',
+      name: 'orders',
+      component: UserOrdersView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/orders/add',
+      name: 'add-order',
+      component: UserAddOrderView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/orders/:trackCode',
+      name: 'order-details',
+      component: UserOrderDetailsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/orders',
       name: 'all-orders',
       component: AdminOrdersView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/all-orders/:orderId',
+      path: '/admin/orders/:orderId',
       name: 'all-order-details',
       component: AdminOrderDetailsView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/upload-orders',
+      path: '/admin/orders/upload',
       name: 'upload-orders',
       component: AdminUploadOrdersView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/users',
+      path: '/admin/users',
       name: 'users',
       component: AdminUsersView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/points',
-      name: 'points',
-      component: AdminPointsView,
-      meta: { requiresAuth: true, role: 'ADMIN' },
-    },
-    {
-      path: '/scan-logs',
+      path: '/admin/scan-logs',
       name: 'scan-logs',
       component: AdminScanLogsView,
       meta: { requiresAuth: true, role: 'ADMIN' },
     },
     {
-      path: '/scan',
+      path: '/admin/scan',
       name: 'scan',
-      component: AdminScanPage,
+      component: AdminScanView,
       meta: { requiresAuth: true, role: 'ADMIN' },
+    },
+    {
+      path: '/admin/instructions',
+      name: 'admin-instructions',
+      component: AdminInstructionsView,
+      meta: { requiresAuth: true, role: 'SUPER_ADMIN' },
+    },
+    {
+      path: '/instructions',
+      name: 'instructions',
+      component: InstructionsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: AboutView,
+      meta: { requiresAuth: true },
     }
   ],
 })
@@ -124,8 +160,16 @@ router.beforeEach((to, from, next) => {
     next('/login')
   } else if (to.meta.guestOnly && loggedIn) {
     next('/')
-  } else if (requiredRole && getUserRole() !== requiredRole) {
-    next('/')
+  } else if (requiredRole) {
+    const role = getUserRole()
+    const allowed =
+      requiredRole === 'ADMIN'
+        ? role === 'ADMIN' || role === 'SUPER_ADMIN'
+        : requiredRole === 'SUPER_ADMIN'
+          ? role === 'SUPER_ADMIN'
+          : role === requiredRole
+    if (!allowed) next('/')
+    else next()
   } else {
     next()
   }

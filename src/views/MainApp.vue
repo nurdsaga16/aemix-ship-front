@@ -1,13 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-
+import { computed, onMounted, watch, onActivated } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
-import OrdersView from '@/views/user/OrdersView.vue'
-import OrderDetailsView from '@/views/user/OrderDetailsView.vue'
-import InstructionsView from '@/views/InstructionsView.vue'
-import AddOrderView from '@/views/user/AddOrderView.vue'
-import AboutView from '@/views/AboutView.vue'
 import SupportButton from '@/components/SupportButton.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getRoleFromToken } from '@/lib/auth'
@@ -19,114 +13,76 @@ import {
   Layers,
   UploadCloud,
   Users,
-  MapPin,
   ScanLine,
   QrCode,
+  Link2,
 } from 'lucide-vue-next'
+import { useOrdersStore } from '@/stores/useOrdersStore'
 
-const currentScreen = ref('home')
-const selectedOrderId = ref(null)
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+const ordersStore = useOrdersStore()
 
 const userRole = computed(() => getRoleFromToken(authStore.authData?.token))
 
-const orders = ref([
-  {
-    id: 'AEMIX-1234',
-    trackNumber: 'SF1234567890123',
-    status: 'shipped',
-    updatedAt: '22 янв 2026, 14:30',
-  },
-  {
-    id: 'AEMIX-1235',
-    trackNumber: 'YT9876543210987',
-    status: 'arrived',
-    updatedAt: '21 янв 2026, 09:15',
-  },
-  {
-    id: 'AEMIX-1236',
-    trackNumber: 'JD5555666677778',
-    status: 'ready',
-    updatedAt: '20 янв 2026, 18:45',
-  },
-])
+const activeOrdersCount = computed(() => ordersStore.activeOrdersCount)
+
+const loadUserOrders = async () => {
+  if (userRole.value === 'USER') {
+    await ordersStore.fetchActiveOrdersCount().catch(() => {})
+  }
+}
+
+onMounted(() => {
+  loadUserOrders()
+})
+
+// Обновляем заказы при возврате на главную страницу
+watch(() => route.path, (newPath) => {
+  if (newPath === '/' && userRole.value === 'USER') {
+    loadUserOrders()
+  }
+})
+
+// Обновляем при активации компонента (если используется keep-alive)
+onActivated(() => {
+  if (userRole.value === 'USER') {
+    loadUserOrders()
+  }
+})
 
 const handleNavigate = (screen) => {
-  if (screen === 'orders' || screen === 'add' || screen === 'orderDetails') {
+  if (screen === 'orders' || screen === 'add') {
     if (userRole.value !== 'USER') {
       return
     }
   }
   if (screen.startsWith('admin-') || screen === 'all-orders') {
-    if (userRole.value !== 'ADMIN') {
+    if (screen === 'admin-instructions') {
+      if (userRole.value !== 'SUPER_ADMIN') return
+    } else if (userRole.value !== 'ADMIN' && userRole.value !== 'SUPER_ADMIN') {
       return
     }
   }
-  if (screen === 'all-orders') {
-    router.push('/all-orders')
-    return
+  
+  const routes = {
+    'all-orders': '/admin/orders',
+    'admin-upload': '/admin/orders/upload',
+    'admin-users': '/admin/users',
+    'admin-scan-logs': '/admin/scan-logs',
+    'admin-scan': '/admin/scan',
+    'admin-instructions': '/admin/instructions',
+    'orders': '/orders',
+    'add': '/orders/add',
+    'instructions': '/instructions',
+    'about': '/about',
   }
-  if (screen === 'admin-upload') {
-    router.push('/upload-orders')
-    return
-  }
-  if (screen === 'admin-users') {
-    router.push('/users')
-    return
-  }
-  if (screen === 'admin-points') {
-    router.push('/points')
-    return
-  }
-  if (screen === 'admin-scan-logs') {
-    router.push('/scan-logs')
-    return
-  }
-  if (screen === 'admin-scan') {
-    router.push('/scan')
-    return
-  }
-  currentScreen.value = screen
-}
-
-const handleOrderClick = (orderId) => {
-  selectedOrderId.value = orderId
-  currentScreen.value = 'orderDetails'
-}
-
-const handleAddOrder = (trackNumber) => {
-  const newOrder = {
-    id: `AEMIX-${1237 + orders.value.length}`,
-    trackNumber,
-    status: 'pending',
-    updatedAt: new Date().toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-  }
-  orders.value = [newOrder, ...orders.value]
-}
-
-const handleBack = () => {
-  if (currentScreen.value === 'orderDetails') {
-    currentScreen.value = 'orders'
-    selectedOrderId.value = null
-  } else {
-    currentScreen.value = 'home'
+  
+  if (routes[screen]) {
+    router.push(routes[screen])
   }
 }
-
-const selectedOrder = computed(() => {
-  return orders.value.find((o) => o.id === selectedOrderId.value)
-})
-
-const activeOrdersCount = computed(() => {
-  return orders.value.filter((o) => o.status !== 'ready').length
-})
 
 const menuItems = computed(() => {
   const common = [
@@ -134,12 +90,11 @@ const menuItems = computed(() => {
     { id: 'about', label: 'О КОМПАНИИ', icon: Building2 },
   ]
 
-  if (userRole.value === 'ADMIN') {
-    return [
+  if (userRole.value === 'ADMIN' || userRole.value === 'SUPER_ADMIN') {
+    const adminItems = [
       { id: 'all-orders', label: 'ВСЕ ЗАКАЗЫ', icon: Layers },
       { id: 'admin-upload', label: 'ИМПОРТ ЗАКАЗОВ', icon: UploadCloud },
       { id: 'admin-users', label: 'ВСЕ ПОЛЬЗОВАТЕЛИ', icon: Users },
-      { id: 'admin-points', label: 'ПУНКТЫ ВЫДАЧИ', icon: MapPin },
       { id: 'admin-scan-logs', label: 'ЛОГИ СКАНИРОВАНИЯ', icon: ScanLine },
       {
         id: 'admin-scan',
@@ -150,6 +105,14 @@ const menuItems = computed(() => {
       },
       ...common,
     ]
+    if (userRole.value === 'SUPER_ADMIN') {
+      adminItems.splice(adminItems.length - common.length, 0, {
+        id: 'admin-instructions',
+        label: 'ССЫЛКИ ИНСТРУКЦИЙ',
+        icon: Link2,
+      })
+    }
+    return adminItems
   }
 
   if (userRole.value === 'USER') {
@@ -167,43 +130,11 @@ const menuItems = computed(() => {
 <template>
   <div class="min-h-screen overflow-x-hidden">
     <HomeView
-      v-if="currentScreen === 'home'"
       :active-orders-count="activeOrdersCount"
       :on-navigate="handleNavigate"
       :menu-items="menuItems"
       :show-active-orders="userRole === 'USER'"
     />
-
-    <OrdersView
-      v-else-if="currentScreen === 'orders' && userRole === 'USER'"
-      :orders="orders"
-      :on-back="handleBack"
-      :on-order-click="handleOrderClick"
-    />
-
-    <OrderDetailsView
-      v-else-if="currentScreen === 'orderDetails' && selectedOrder && userRole === 'USER'"
-      :order="selectedOrder"
-      :on-back="handleBack"
-    />
-
-    <InstructionsView
-      v-else-if="currentScreen === 'instructions'"
-      :on-back="handleBack"
-    />
-
-    <AddOrderView
-      v-else-if="currentScreen === 'add' && userRole === 'USER'"
-      :on-back="handleBack"
-      :on-add-order="handleAddOrder"
-    />
-
-    <AboutView
-      v-else-if="currentScreen === 'about'"
-      :on-back="handleBack"
-    />
-
-    <SupportButton v-if="currentScreen === 'home'" />
+    <SupportButton />
   </div>
 </template>
-

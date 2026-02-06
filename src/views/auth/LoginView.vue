@@ -24,8 +24,12 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    await authStore.login(email.value.trim(), password.value.trim())
-    router.push('/')
+    const result = await authStore.login(email.value.trim(), password.value.trim())
+    if (result?.isVerified === false && result.emailOrTelegramId) {
+      router.push({ path: '/verify', query: { emailOrTelegramId: result.emailOrTelegramId } })
+    } else {
+      router.push('/')
+    }
   } catch (e) {
     error.value = 'Неверный email или пароль.'
   } finally {
@@ -45,8 +49,12 @@ const injectTelegramWidget = () => {
 
   window.onTelegramAuth = async (user) => {
     try {
-      await authStore.loginWithTelegram(user)
-      router.push('/')
+      const result = await authStore.loginWithTelegram(user)
+      if (result?.isVerified === false && result.emailOrTelegramId) {
+        router.push({ path: '/verify', query: { emailOrTelegramId: result.emailOrTelegramId } })
+      } else {
+        router.push('/')
+      }
     } catch (e) {
       error.value = 'Ошибка входа через Telegram'
     }
@@ -83,13 +91,20 @@ onMounted(() => {
     }
     authStore
       .loginWithTelegram(payload)
-      .then(() => router.push('/'))
+      .then((result) => {
+        if (result?.isVerified === false && result.emailOrTelegramId) {
+          router.replace({ path: '/verify', query: { emailOrTelegramId: result.emailOrTelegramId } })
+        } else {
+          router.push('/')
+        }
+      })
       .catch(() => {
         error.value = 'Ошибка входа через Telegram'
       })
       .finally(() => {
-        // убрать query-параметры после обработки
-        router.replace({ path: '/login' })
+        if (window.location.pathname === '/login') {
+          router.replace({ path: '/login' })
+        }
       })
   }
   injectTelegramWidget()

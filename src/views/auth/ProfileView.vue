@@ -22,7 +22,8 @@ const identifier = computed(() => {
   const data = authStore.authData
   if (!data) return ''
   if (data.identifier) return data.identifier
-  if (data.telegramId) return `Telegram ID: ${data.telegramId}`
+  if (data.emailOrTelegramId) return data.emailOrTelegramId
+  if (data.telegramId != null) return String(data.telegramId)
   return ''
 })
 

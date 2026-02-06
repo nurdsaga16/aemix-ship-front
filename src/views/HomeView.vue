@@ -47,7 +47,6 @@ const menuItems = computed(() => {
     <Header />
     
     <main class="px-5 pb-28 md:max-w-3xl md:mx-auto">
-      <!-- Status Bar -->
       <GlassCard v-if="showActiveOrders" class="mb-6" :delay="0.1">
         <div class="flex items-center justify-between">
           <span class="text-muted-foreground text-sm">Активных заказов</span>
@@ -55,7 +54,6 @@ const menuItems = computed(() => {
         </div>
       </GlassCard>
 
-      <!-- Navigation Menu -->
       <div class="space-y-3">
         <GlassCard
           v-for="(item, index) in menuItems"

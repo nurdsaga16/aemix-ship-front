@@ -51,10 +51,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(emailOrTelegramId, password) {
     try {
-      const token = (
-        await api.post('/auth/login', { emailOrTelegramId, password })
-      ).data.token
-      saveAuthData({ token, identifier: emailOrTelegramId })
+      const res = (await api.post('/auth/login', { emailOrTelegramId, password })).data
+      if (res.isVerified === false && res.emailOrTelegramId) {
+        return { isVerified: false, emailOrTelegramId: res.emailOrTelegramId }
+      }
+      saveAuthData({ token: res.token, emailOrTelegramId: emailOrTelegramId })
+      return { isVerified: true }
     } catch (err) {
       throw new Error('Ошибка входа')
     }
@@ -62,12 +64,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loginWithTelegram(telegramPayload) {
     try {
-      const token = (await api.post('/auth/telegram', telegramPayload)).data.token
+      const res = (await api.post('/auth/telegram', telegramPayload)).data
+      if (res.isVerified === false && res.emailOrTelegramId) {
+        return { isVerified: false, emailOrTelegramId: res.emailOrTelegramId }
+      }
       saveAuthData({
-        token,
+        token: res.token,
         telegramId: telegramPayload.id,
         telegramUsername: telegramPayload.username,
       })
+      return { isVerified: true }
     } catch (err) {
       throw new Error('Ошибка входа через Telegram')
     }
@@ -121,7 +127,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const isLoggingOut = ref(false)
+
   function logout() {
+    isLoggingOut.value = true
     removeAuthData()
     if (window.location.pathname !== '/login') {
       window.location.href = '/login'
@@ -130,6 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     authData,
+    isLoggingOut,
     login,
     loginWithTelegram,
     register,

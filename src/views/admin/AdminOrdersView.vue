@@ -1,9 +1,18 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Package, Search, SlidersHorizontal, ChevronDown } from 'lucide-vue-next'
+import { Package, Search, SlidersHorizontal, CheckSquare, Check } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import Pagination from '@/components/Pagination.vue'
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
+import AppSelect from '@/components/AppSelect.vue'
+import FormLabel from '@/components/FormLabel.vue'
+import { useFilterDebounce } from '@/composables/useFilterDebounce'
+import { PAGE_SIZE_OPTIONS } from '@/constants/pagination'
+import { useOrdersStore } from '@/stores/useOrdersStore'
 
 const props = defineProps({
   onBack: {
@@ -17,117 +26,49 @@ const props = defineProps({
 })
 
 const router = useRouter()
-
-const orders = ref([
-  {
-    id: 'AEMIX-9012',
-    trackNumber: 'SF1234567890123',
-    status: 'shipped',
-    pickupPoint: 'Алматы, ТРЦ Mega Center',
-    updatedAt: '22 янв 2026, 14:30',
-  },
-  {
-    id: 'AEMIX-9013',
-    trackNumber: 'YT9876543210987',
-    status: 'arrived',
-    pickupPoint: 'Астана, пр-т Кабанбай батыра 10',
-    updatedAt: '21 янв 2026, 09:15',
-  },
-  {
-    id: 'AEMIX-9014',
-    trackNumber: 'JD5555666677778',
-    status: 'ready',
-    pickupPoint: 'Алматы, ул. Абая 150',
-    updatedAt: '20 янв 2026, 18:45',
-  },
-  {
-    id: 'AEMIX-9015',
-    trackNumber: 'SF1111222233334',
-    status: 'pending',
-    pickupPoint: 'Шымкент, ул. Тауке хана 32',
-    updatedAt: '20 янв 2026, 10:05',
-  },
-  {
-    id: 'AEMIX-9016',
-    trackNumber: 'YT4444555566667',
-    status: 'shipped',
-    pickupPoint: 'Алматы, ТРЦ Mega Center',
-    updatedAt: '19 янв 2026, 16:20',
-  },
-  {
-    id: 'AEMIX-9017',
-    trackNumber: 'JD8888999900001',
-    status: 'arrived',
-    pickupPoint: 'Астана, пр-т Кабанбай батыра 10',
-    updatedAt: '18 янв 2026, 11:40',
-  },
-])
+const ordersStore = useOrdersStore()
 
 const searchQuery = ref('')
 const statusFilter = ref('all')
-const pickupFilter = ref('all')
+const cityFilter = ref('all')
 const sortOption = ref('newest')
+const pageSize = ref(20)
+const selectedTrackCodes = ref(new Set())
+const isBulkReadyLoading = ref(false)
 
 const filters = [
   { id: 'all', label: 'ВСЕ' },
-  { id: 'pending', label: 'ОЖИДАЕТ' },
   { id: 'shipped', label: 'В ПУТИ' },
   { id: 'arrived', label: 'ПРИБЫЛ' },
   { id: 'ready', label: 'ГОТОВ' },
 ]
 
-const pickupOptions = computed(() => {
-  const points = orders.value.map((order) => order.pickupPoint)
-  return Array.from(new Set(points))
+const cityOptions = computed(() => {
+  const seen = new Map()
+  for (const order of ordersStore.orders) {
+    if (order.cityId != null && order.cityName && !seen.has(order.cityId)) {
+      seen.set(order.cityId, order.cityName)
+    }
+  }
+  return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
 })
 
 const sortOptions = [
-  { id: 'status', label: 'От ожидание до готов' },
   { id: 'newest', label: 'Сначала новые' },
   { id: 'oldest', label: 'Сначала старые' },
 ]
 
-const statusOrder = ['pending', 'shipped', 'arrived', 'ready']
-const monthMap = {
-  янв: 0,
-  фев: 1,
-  мар: 2,
-  апр: 3,
-  май: 4,
-  июн: 5,
-  июл: 6,
-  авг: 7,
-  сен: 8,
-  окт: 9,
-  ноя: 10,
-  дек: 11,
-}
-
-const parseRuDate = (value) => {
-  const text = String(value || '').trim().toLowerCase()
-  const match = text.match(/(\d{1,2})\s([а-я]+)\s(\d{4}),\s(\d{2}):(\d{2})/)
-  if (!match) return 0
-  const [, day, monthKey, year, hours, minutes] = match
-  const monthIndex = monthMap[monthKey]
-  if (monthIndex === undefined) return 0
-  return new Date(
-    Number(year),
-    monthIndex,
-    Number(day),
-    Number(hours),
-    Number(minutes),
-  ).getTime()
-}
-
+const statusOrder = ['shipped', 'arrived', 'ready']
 const filteredOrders = computed(() => {
   const query = searchQuery.value.trim().toUpperCase()
-  return orders.value.filter((order) => {
+  return ordersStore.orders.filter((order) => {
     const matchesStatus = statusFilter.value === 'all' || order.status === statusFilter.value
-    const matchesPickup = pickupFilter.value === 'all' || order.pickupPoint === pickupFilter.value
+    const matchesCity =
+      cityFilter.value === 'all' || String(order.cityId) === String(cityFilter.value)
     const matchesQuery =
       !query ||
-      order.trackNumber.toUpperCase().includes(query)
-    return matchesStatus && matchesPickup && matchesQuery
+      order.trackCode.toUpperCase().includes(query)
+    return matchesStatus && matchesCity && matchesQuery
   })
 })
 
@@ -139,10 +80,63 @@ const sortedOrders = computed(() => {
     )
   }
   if (sortOption.value === 'oldest') {
-    return items.sort((a, b) => parseRuDate(a.updatedAt) - parseRuDate(b.updatedAt))
+    return items.sort((a, b) => a.updatedAt - b.updatedAt)
   }
-  return items.sort((a, b) => parseRuDate(b.updatedAt) - parseRuDate(a.updatedAt))
+  return items.sort((a, b) => b.updatedAt - a.updatedAt)
 })
+
+const allSelected = computed(() => {
+  const list = sortedOrders.value
+  return list.length > 0 && list.every((o) => selectedTrackCodes.value.has(o.trackCode))
+})
+
+const someSelected = computed(() => selectedTrackCodes.value.size > 0)
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    selectedTrackCodes.value = new Set()
+    return
+  }
+  selectedTrackCodes.value = new Set(sortedOrders.value.map((o) => o.trackCode))
+}
+
+const toggleSelect = (trackCode) => {
+  const next = new Set(selectedTrackCodes.value)
+  if (next.has(trackCode)) next.delete(trackCode)
+  else next.add(trackCode)
+  selectedTrackCodes.value = next
+}
+
+const isSelected = (trackCode) => selectedTrackCodes.value.has(trackCode)
+
+const setBulkReady = async () => {
+  if (!someSelected.value || isBulkReadyLoading.value) return
+  isBulkReadyLoading.value = true
+  try {
+    await ordersStore.bulkReady(Array.from(selectedTrackCodes.value))
+    selectedTrackCodes.value = new Set()
+    await loadOrders(ordersStore.page)
+  } catch (e) {
+    ordersStore.error = e.response?.data?.message || 'Не удалось обновить статус'
+  } finally {
+    isBulkReadyLoading.value = false
+  }
+}
+
+const selectAllCheckboxRef = ref(null)
+watch([someSelected, allSelected], () => {
+  const el = selectAllCheckboxRef.value
+  if (el) el.indeterminate = someSelected.value && !allSelected.value
+}, { immediate: true })
+
+const goToPage = (page) => {
+  loadOrders(page)
+}
+
+const handlePageSizeChange = (newSize) => {
+  pageSize.value = newSize
+  loadOrders(0)
+}
 
 const handleBack = () => {
   if (props.onBack) {
@@ -157,29 +151,45 @@ const handleOrderClick = (orderId) => {
     props.onOrderClick(orderId)
     return
   }
-  router.push(`/all-orders/${orderId}`)
+  router.push(`/admin/orders/${orderId}`)
 }
+
+const loadOrders = (page = 0) => {
+  const sort =
+    sortOption.value === 'oldest'
+      ? 'CREATED_ASC'
+      : 'CREATED_DESC'
+
+  return ordersStore
+    .fetchOrders({
+      page,
+      size: pageSize.value,
+      trackCode: searchQuery.value.trim() || null,
+      cityId: cityFilter.value === 'all' ? null : Number(cityFilter.value),
+      sort,
+    })
+    .catch(() => {})
+}
+
+
+useFilterDebounce(
+  [searchQuery, cityFilter, sortOption, pageSize],
+  () => loadOrders(0),
+  400
+)
+
+onMounted(() => {
+  loadOrders(0)
+})
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <!-- Header -->
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="handleBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <h1 class="text-caps text-lg">ВСЕ ЗАКАЗЫ</h1>
-    </header>
+  <PageLayout>
+    <PageHeader title="ВСЕ ЗАКАЗЫ" :on-back="handleBack" />
 
-    <main class="px-5 pb-8 space-y-5 md:max-w-3xl md:mx-auto">
-      <!-- Search -->
+    <PageMain contentClass="space-y-5">
       <GlassCard :delay="0.05">
-        <label class="block text-caps text-xs text-muted-foreground mb-3">
-          ПОИСК
-        </label>
+        <FormLabel margin="mb-3">ПОИСК</FormLabel>
         <div class="relative">
           <Search class="w-4 h-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
           <input
@@ -191,7 +201,6 @@ const handleOrderClick = (orderId) => {
         </div>
       </GlassCard>
 
-      <!-- Filters -->
       <div>
         <div class="flex items-center gap-2 text-caps text-xs text-muted-foreground mb-3">
           <SlidersHorizontal class="w-4 h-4" />
@@ -215,48 +224,60 @@ const handleOrderClick = (orderId) => {
         <GlassCard class="mt-4" :delay="0.12">
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-                ПУНКТ ВЫДАЧИ
-              </label>
-              <div class="relative">
-                <select
-                  v-model="pickupFilter"
-                  class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                >
-                  <option value="all">Все пункты</option>
-                  <option v-for="point in pickupOptions" :key="point" :value="point">
-                    {{ point }}
-                  </option>
-                </select>
-                <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  <ChevronDown class="w-4 h-4" />
-                </div>
-              </div>
+              <FormLabel>ГОРОД</FormLabel>
+              <AppSelect v-model="cityFilter">
+                <option value="all">Все города</option>
+                <option v-for="city in cityOptions" :key="city.id" :value="city.id">
+                  {{ city.name }}
+                </option>
+              </AppSelect>
             </div>
             <div>
-              <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-                СОРТИРОВКА
-              </label>
-              <div class="relative">
-                <select
-                  v-model="sortOption"
-                  class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                >
-                  <option v-for="option in sortOptions" :key="option.id" :value="option.id">
-                    {{ option.label }}
-                  </option>
-                </select>
-                <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  <ChevronDown class="w-4 h-4" />
-                </div>
-              </div>
+              <FormLabel>СОРТИРОВКА</FormLabel>
+              <AppSelect v-model="sortOption">
+                <option v-for="option in sortOptions" :key="option.id" :value="option.id">
+                  {{ option.label }}
+                </option>
+              </AppSelect>
             </div>
           </div>
         </GlassCard>
       </div>
 
+      <div
+        v-if="someSelected"
+        class="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3"
+      >
+        <span class="text-sm text-foreground">
+          Выбрано: <strong>{{ selectedTrackCodes.size }}</strong>
+        </span>
+        <button
+          type="button"
+          :disabled="isBulkReadyLoading"
+          @click="setBulkReady"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <CheckSquare class="w-4 h-4" />
+          Сделать READY
+        </button>
+      </div>
+
+      <GlassCard :delay="0.11">
+        <Pagination
+          :page="ordersStore.page"
+          :total-pages="ordersStore.totalPages"
+          :total-elements="ordersStore.totalElements"
+          :size="ordersStore.size || pageSize"
+          :loading="ordersStore.loading"
+          :show-page-size="true"
+          :page-size-options="PAGE_SIZE_OPTIONS"
+          item-label="заказов"
+          @page-change="goToPage"
+          @page-size-change="handlePageSizeChange"
+        />
+      </GlassCard>
+
       <div v-if="sortedOrders.length === 0" class="flex flex-col items-center justify-center min-h-[45vh] animate-slide-up">
-        <!-- Empty State -->
         <div class="w-24 h-24 rounded-3xl bg-glass/40 flex items-center justify-center mb-6">
           <Package class="w-12 h-12 text-muted-foreground" />
         </div>
@@ -268,31 +289,150 @@ const handleOrderClick = (orderId) => {
       </div>
 
       <div v-else class="space-y-3">
-        <!-- Orders List -->
+        <div class="flex items-center gap-3 mb-2">
+          <label class="flex items-center gap-3 cursor-pointer select-none text-sm text-muted-foreground hover:text-foreground transition-colors group">
+            <span class="app-checkbox-wrapper">
+              <input
+                ref="selectAllCheckboxRef"
+                type="checkbox"
+                :checked="allSelected"
+                @change="toggleSelectAll"
+                class="app-checkbox"
+              />
+              <span class="app-checkbox-box">
+                <span class="app-checkbox-check">
+                  <Check class="w-3.5 h-3.5" stroke-width="2.5" />
+                </span>
+                <span class="app-checkbox-indeterminate" />
+              </span>
+            </span>
+            <span>Выбрать все</span>
+          </label>
+        </div>
         <GlassCard
           v-for="(order, index) in sortedOrders"
-          :key="order.id"
-          @click="handleOrderClick(order.id)"
+          :key="order.trackCode"
+          @click="handleOrderClick(order.trackCode)"
           :delay="0.1 + index * 0.06"
           class="cursor-pointer"
         >
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <p class="text-caps text-base mb-1">{{ order.id }}</p>
-              <p class="text-muted-foreground text-xs font-mono">
-                {{ order.trackNumber }}
+          <div class="flex items-start gap-3">
+            <span class="app-checkbox-wrapper mt-0.5 shrink-0" @click.stop>
+              <input
+                type="checkbox"
+                :checked="isSelected(order.trackCode)"
+                @change="toggleSelect(order.trackCode)"
+                class="app-checkbox"
+              />
+              <span class="app-checkbox-box">
+                <span class="app-checkbox-check">
+                  <Check class="w-3.5 h-3.5" stroke-width="2.5" />
+                </span>
+              </span>
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <p class="text-caps text-base mb-1">{{ order.title }}</p>
+                  <p class="text-muted-foreground text-xs font-mono">
+                    {{ order.trackCode }}
+                  </p>
+                </div>
+                <StatusBadge :status="order.status" />
+              </div>
+              <p class="text-muted-foreground text-xs">
+                Город: {{ order.cityName || '—' }}
+              </p>
+              <p class="text-muted-foreground text-xs">
+                Обновлено: {{ order.updatedAtLabel }}
               </p>
             </div>
-            <StatusBadge :status="order.status" />
           </div>
-          <p class="text-muted-foreground text-xs">
-            Пункт выдачи: {{ order.pickupPoint }}
-          </p>
-          <p class="text-muted-foreground text-xs">
-            Обновлено: {{ order.updatedAt }}
-          </p>
         </GlassCard>
       </div>
-    </main>
-  </div>
+    </PageMain>
+  </PageLayout>
 </template>
+
+<style scoped>
+.app-checkbox-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.app-checkbox-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  border: 1.5px solid hsl(var(--glass-border));
+  background: hsl(222 47% 11% / 0.5);
+  transition: all 0.2s ease;
+  transform-origin: center;
+}
+
+.app-checkbox-wrapper:hover .app-checkbox-box {
+  border-color: hsl(var(--primary) / 0.6);
+  background: hsl(222 47% 11% / 0.7);
+}
+
+.app-checkbox:active + .app-checkbox-box {
+  transform: scale(0.92);
+}
+
+.app-checkbox:focus-visible + .app-checkbox-box {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4);
+}
+
+.app-checkbox-check {
+  display: none;
+  color: hsl(var(--primary-foreground));
+}
+
+.app-checkbox:checked + .app-checkbox-box .app-checkbox-check {
+  display: flex;
+}
+
+.app-checkbox:checked + .app-checkbox-box {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+.app-checkbox-indeterminate {
+  display: none;
+  width: 0.625rem;
+  height: 2px;
+  background: hsl(var(--primary-foreground));
+  border-radius: 1px;
+}
+
+.app-checkbox:indeterminate + .app-checkbox-box .app-checkbox-indeterminate {
+  display: block;
+}
+
+.app-checkbox:indeterminate + .app-checkbox-box .app-checkbox-check {
+  display: none;
+}
+
+.app-checkbox:indeterminate + .app-checkbox-box {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+</style>

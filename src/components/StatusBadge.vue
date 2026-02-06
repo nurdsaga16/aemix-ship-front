@@ -6,7 +6,7 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['pending', 'shipped', 'arrived', 'ready'].includes(value)
+    validator: (value) => ['shipped', 'arrived', 'ready'].includes(value)
   },
   className: {
     type: String,
@@ -15,14 +15,8 @@ const props = defineProps({
 })
 
 const statusConfig = {
-  pending: {
-    label: 'ОЖИДАНИЕ',
-    emoji: '⏳',
-    bgClass: 'bg-yellow-500/20',
-    textClass: 'text-yellow-400',
-  },
   shipped: {
-    label: 'ОТПРАВЛЕН',
+    label: 'В ПУТИ',
     emoji: '🟡',
     bgClass: 'bg-orange-500/20',
     textClass: 'text-orange-400',

@@ -1,54 +1,37 @@
 <script setup>
-import { ArrowLeft, Smartphone, Play, BookOpen, ExternalLink } from 'lucide-vue-next'
+import { computed, onMounted } from 'vue'
+import { Smartphone, Play, BookOpen, ExternalLink } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
+import Loader from '@/components/Loader.vue'
+import { useInstructionLinksStore } from '@/stores/useInstructionLinksStore'
 
-defineProps({
-  onBack: {
-    type: Function,
-    required: true
-  }
+const iconMap = {
+  pinduoduo: Smartphone,
+  alipay: Play,
+  tracking: BookOpen,
+}
+
+const linksStore = useInstructionLinksStore()
+const guides = computed(() =>
+  linksStore.links.map((g) => ({
+    ...g,
+    icon: iconMap[g.linkKey] || BookOpen,
+  })),
+)
+
+onMounted(() => {
+  linksStore.fetchLinks().catch(() => {})
 })
-
-const guides = [
-  {
-    id: 'pinduoduo',
-    title: 'PINDUODUO',
-    subtitle: 'Как заказать через приложение',
-    icon: Smartphone,
-    link: '#',
-  },
-  {
-    id: 'alipay',
-    title: 'ALIPAY',
-    subtitle: 'Настройка оплаты',
-    icon: Play,
-    link: '#',
-  },
-  {
-    id: 'tracking',
-    title: 'ОТСЛЕЖИВАНИЕ',
-    subtitle: 'Как добавить трек-номер',
-    icon: BookOpen,
-    link: '#',
-  },
-]
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <!-- Header -->
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="onBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <h1 class="text-caps text-lg">ИНСТРУКЦИИ</h1>
-    </header>
+  <PageLayout>
+    <PageHeader title="ИНСТРУКЦИИ" />
 
-    <main class="px-5 pb-8 md:max-w-3xl md:mx-auto">
-      <!-- Introduction -->
+    <PageMain>
       <GlassCard class="mb-6" :delay="0.1">
         <p class="text-muted-foreground text-sm leading-relaxed">
           Полезные видео и гайды для работы с китайскими площадками.
@@ -56,13 +39,16 @@ const guides = [
         </p>
       </GlassCard>
 
-      <!-- Guides List -->
-      <div class="space-y-3">
+      <div v-if="linksStore.loading" class="flex justify-center py-12">
+        <Loader size="lg" />
+      </div>
+      <div v-else class="space-y-3">
         <GlassCard
           v-for="(guide, index) in guides"
           :key="guide.id"
-          @click="() => window.open(guide.link, '_blank')"
+          @click="guide.link && guide.link !== '#' ? window.open(guide.link, '_blank') : null"
           :delay="0.2 + index * 0.1"
+          :class="{ 'cursor-pointer hover:border-primary/30': guide.link && guide.link !== '#' }"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
@@ -79,7 +65,6 @@ const guides = [
         </GlassCard>
       </div>
 
-      <!-- Video Section -->
       <div class="mt-8">
         <h2 class="text-caps text-sm text-muted-foreground mb-4">ВИДЕО-ИНСТРУКЦИИ</h2>
         
@@ -93,6 +78,6 @@ const guides = [
           <p class="text-muted-foreground text-xs">Полный гайд • 12 мин</p>
         </GlassCard>
       </div>
-    </main>
-  </div>
+    </PageMain>
+  </PageLayout>
 </template>

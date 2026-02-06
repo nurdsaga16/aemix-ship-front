@@ -1,41 +1,44 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ArrowLeft, Users, ChevronDown, Pencil, Trash2 } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { Users, Pencil, Trash2, Check, X } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
+import Pagination from '@/components/Pagination.vue'
+import PageLayout from '@/components/PageLayout.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import PageMain from '@/components/PageMain.vue'
+import AppSelect from '@/components/AppSelect.vue'
+import FormLabel from '@/components/FormLabel.vue'
+import AppInput from '@/components/AppInput.vue'
+import { useFilterDebounce } from '@/composables/useFilterDebounce'
+import { PAGE_SIZE_OPTIONS } from '@/constants/pagination'
+import { useUserStore } from '@/stores/useUserStore'
+import { useAuthStore } from '@/stores/useAuthStore'
+import { getRoleFromToken } from '@/lib/auth'
 
-const router = useRouter()
+const userStore = useUserStore()
+const authStore = useAuthStore()
 
-const users = ref([
-  {
-    id: 101,
-    emailOrTelegramId: 'admin@aemix.com',
-    role: 'ADMIN',
-    isVerified: true,
-  },
-  {
-    id: 102,
-    emailOrTelegramId: 'user01@aemix.com',
-    role: 'USER',
-    isVerified: true,
-  },
-  {
-    id: 103,
-    emailOrTelegramId: 'telegram_234567',
-    role: 'USER',
-    isVerified: false,
-  },
-  {
-    id: 104,
-    emailOrTelegramId: 'user02@aemix.com',
-    role: 'USER',
-    isVerified: true,
-  },
-])
+const currentUserIdentifier = computed(() => {
+  const data = authStore.authData
+  if (!data) return null
+  if (data.emailOrTelegramId) return data.emailOrTelegramId
+  if (data.telegramId != null) return String(data.telegramId)
+  return null
+})
+
+const currentUserRole = computed(() => getRoleFromToken(authStore.authData?.token))
+
+const canEditOrDeleteUser = (user) => {
+  if (currentUserRole.value !== 'SUPER_ADMIN') return false
+  return user.emailOrTelegramId !== currentUserIdentifier.value
+}
 
 const searchQuery = ref('')
 const roleFilter = ref('all')
 const verificationFilter = ref('all')
+const confirmDelete = ref(null)
+const saveError = ref(null)
+const pageSize = ref(20)
 
 const roleOptions = [
   { id: 'all', label: 'Все роли' },
@@ -49,38 +52,93 @@ const verificationOptions = [
   { id: 'unverified', label: 'Не подтвержден' },
 ]
 
-const filteredUsers = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  return users.value.filter((user) => {
-    const matchesQuery =
-      !query || user.emailOrTelegramId.toLowerCase().includes(query) || String(user.id).includes(query)
-    const matchesRole = roleFilter.value === 'all' || user.role === roleFilter.value
-    const matchesVerification =
-      verificationFilter.value === 'all' ||
-      (verificationFilter.value === 'verified' && user.isVerified) ||
-      (verificationFilter.value === 'unverified' && !user.isVerified)
-    return matchesQuery && matchesRole && matchesVerification
-  })
+const isVerifiedParam = computed(() => {
+  if (verificationFilter.value === 'verified') return true
+  if (verificationFilter.value === 'unverified') return false
+  return null
 })
 
-const handleBack = () => {
-  router.push('/')
+const loadUsers = (page = 0) => {
+  return userStore
+    .fetchUsers({
+      page,
+      size: pageSize.value,
+      text: searchQuery.value.trim() || null,
+      role: roleFilter.value === 'all' ? null : roleFilter.value,
+      isVerified: isVerifiedParam.value,
+    })
+    .catch(() => {})
+}
+
+const goToPage = (page) => {
+  if (page < 0 || page >= userStore.totalPages) return
+  loadUsers(page)
+}
+
+const handlePageSizeChange = (newSize) => {
+  pageSize.value = newSize
+  loadUsers(0)
+}
+
+useFilterDebounce(
+  [searchQuery, roleFilter, verificationFilter, pageSize],
+  () => loadUsers(0),
+  400
+)
+
+onMounted(() => {
+  loadUsers(0)
+})
+
+const startEdit = (user) => {
+  if (!canEditOrDeleteUser(user)) return
+  user.isEditing = true
+  user.draftRole = user.role
+}
+
+const cancelEdit = (user) => {
+  user.isEditing = false
+  user.draftRole = user.role
+}
+
+const saveEdit = async (user) => {
+  saveError.value = null
+  try {
+    await userStore.updateUser(user.emailOrTelegramId, { role: user.draftRole })
+    user.role = user.draftRole
+    user.isEditing = false
+  } catch (e) {
+    saveError.value = userStore.error || 'Не удалось сохранить'
+  }
+}
+
+const handleDelete = (user) => {
+  if (!canEditOrDeleteUser(user)) return
+  confirmDelete.value = user
+}
+
+const closeDelete = () => {
+  confirmDelete.value = null
+  saveError.value = null
+}
+
+const confirmDeleteUser = async () => {
+  if (!confirmDelete.value) return
+  const user = confirmDelete.value
+  try {
+    await userStore.deleteUser(user.emailOrTelegramId)
+    confirmDelete.value = null
+  } catch (e) {
+    saveError.value = userStore.error || 'Не удалось удалить'
+  }
 }
 </script>
 
 <template>
-  <div class="min-h-screen relative z-10">
-    <header class="flex items-center gap-4 py-4 px-5">
-      <button
-        @click="handleBack"
-        class="w-11 h-11 rounded-full glass-button flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-      >
-        <ArrowLeft class="w-5 h-5" />
-      </button>
-      <h1 class="text-caps text-lg">ВСЕ ПОЛЬЗОВАТЕЛИ</h1>
-    </header>
+  <PageLayout>
+    <PageHeader title="ВСЕ ПОЛЬЗОВАТЕЛИ" />
 
-    <main class="px-5 pb-8 space-y-5 md:max-w-3xl md:mx-auto">
+    <PageMain contentClass="space-y-5">
       <GlassCard :delay="0.05">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -96,74 +154,62 @@ const handleBack = () => {
       </GlassCard>
 
       <GlassCard :delay="0.08">
-        <label class="block text-caps text-xs text-muted-foreground mb-3">
-          ПОИСК
-        </label>
-        <input
+        <FormLabel margin="mb-3">ПОИСК</FormLabel>
+        <AppInput
           v-model="searchQuery"
-          type="text"
           placeholder="ID или email/telegram"
-          class="w-full bg-glass/40 border border-glass-border rounded-2xl px-4 py-3 text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
         />
       </GlassCard>
 
       <GlassCard :delay="0.1">
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              РОЛЬ
-            </label>
-            <div class="relative">
-              <select
-                v-model="roleFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option v-for="option in roleOptions" :key="option.id" :value="option.id">
-                  {{ option.label }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <FormLabel>РОЛЬ</FormLabel>
+            <AppSelect v-model="roleFilter">
+              <option v-for="option in roleOptions" :key="option.id" :value="option.id">
+                {{ option.label }}
+              </option>
+            </AppSelect>
           </div>
           <div>
-            <label class="block text-caps text-[11px] text-muted-foreground mb-2">
-              ВЕРИФИКАЦИЯ
-            </label>
-            <div class="relative">
-              <select
-                v-model="verificationFilter"
-                class="w-full appearance-none bg-glass/50 border border-glass-border/80 rounded-xl pl-4 pr-10 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              >
-                <option v-for="option in verificationOptions" :key="option.id" :value="option.id">
-                  {{ option.label }}
-                </option>
-              </select>
-              <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                <ChevronDown class="w-4 h-4" />
-              </div>
-            </div>
+            <FormLabel>ВЕРИФИКАЦИЯ</FormLabel>
+            <AppSelect v-model="verificationFilter">
+              <option v-for="option in verificationOptions" :key="option.id" :value="option.id">
+                {{ option.label }}
+              </option>
+            </AppSelect>
           </div>
         </div>
       </GlassCard>
 
+      <p v-if="userStore.error || saveError" class="text-xs text-destructive">
+        {{ userStore.error || saveError }}
+      </p>
+
       <GlassCard :delay="0.12">
-        <div class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground">Найдено пользователей</span>
-          <span class="text-foreground font-semibold">{{ filteredUsers.length }}</span>
-        </div>
+        <Pagination
+          :page="userStore.page"
+          :total-pages="userStore.totalPages"
+          :total-elements="userStore.totalElements"
+          :size="userStore.size || pageSize"
+          :loading="userStore.loading"
+          :show-page-size="true"
+          :page-size-options="PAGE_SIZE_OPTIONS"
+          item-label="пользователей"
+          @page-change="goToPage"
+          @page-size-change="handlePageSizeChange"
+        />
       </GlassCard>
 
       <div class="space-y-3">
         <GlassCard
-          v-for="(user, index) in filteredUsers"
-          :key="user.id"
+          v-for="(user, index) in userStore.users"
+          :key="user.emailOrTelegramId"
           :delay="0.15 + index * 0.03"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
-              <p class="text-caps text-sm mb-1">ID {{ user.id }}</p>
+              <p class="text-caps text-sm mb-1 text-muted-foreground">Идентификатор</p>
               <p class="text-foreground text-sm break-all">
                 {{ user.emailOrTelegramId }}
               </p>
@@ -171,9 +217,11 @@ const handleBack = () => {
                 <span
                   :class="[
                     'px-2.5 py-1 rounded-full text-[10px] tracking-[0.18em] uppercase',
-                    user.role === 'ADMIN'
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-glass/60 text-muted-foreground'
+                    user.role === 'SUPER_ADMIN'
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : user.role === 'ADMIN'
+                        ? 'bg-primary/20 text-primary'
+                        : 'bg-glass/60 text-muted-foreground'
                   ]"
                 >
                   {{ user.role }}
@@ -189,27 +237,97 @@ const handleBack = () => {
                   {{ user.isVerified ? 'VERIFIED' : 'PENDING' }}
                 </span>
               </div>
+              <div v-if="user.isEditing" class="mt-4">
+                <label class="block text-caps text-[11px] text-muted-foreground mb-2">
+                  РОЛЬ
+                </label>
+                <div class="relative">
+                    <select
+                      v-model="user.draftRole"
+                      class="w-full appearance-none bg-glass/40 border border-glass-border rounded-xl pl-3 pr-9 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                    >
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="USER">USER</option>
+                    </select>
+                  <div class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <ChevronDown class="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                class="w-10 h-10 rounded-2xl bg-glass/60 border border-glass-border/70 flex items-center justify-center hover:bg-glass/80 transition-all active:scale-[0.98]"
-                title="Редактировать"
-              >
-                <Pencil class="w-4 h-4 text-foreground" />
-              </button>
-              <button
-                type="button"
-                class="w-10 h-10 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center justify-center hover:bg-destructive/20 transition-all active:scale-[0.98]"
-                title="Удалить"
-              >
-                <Trash2 class="w-4 h-4 text-destructive" />
-              </button>
+              <template v-if="user.isEditing">
+                <template v-if="canEditOrDeleteUser(user)">
+                  <button
+                    type="button"
+                    class="w-10 h-10 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center hover:bg-primary/25 transition-all active:scale-[0.98]"
+                    title="Сохранить"
+                    @click="saveEdit(user)"
+                  >
+                    <Check class="w-4 h-4 text-primary" />
+                  </button>
+                  <button
+                    type="button"
+                    class="w-10 h-10 rounded-2xl bg-glass/60 border border-glass-border/70 flex items-center justify-center hover:bg-glass/80 transition-all active:scale-[0.98]"
+                    title="Отменить"
+                    @click="cancelEdit(user)"
+                  >
+                    <X class="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </template>
+              </template>
+              <template v-else>
+                <template v-if="canEditOrDeleteUser(user)">
+                  <button
+                    type="button"
+                    class="w-10 h-10 rounded-2xl bg-glass/60 border border-glass-border/70 flex items-center justify-center hover:bg-glass/80 transition-all active:scale-[0.98]"
+                    title="Редактировать"
+                    @click="startEdit(user)"
+                  >
+                    <Pencil class="w-4 h-4 text-foreground" />
+                  </button>
+                  <button
+                    type="button"
+                    class="w-10 h-10 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center justify-center hover:bg-destructive/20 transition-all active:scale-[0.98]"
+                    title="Удалить"
+                    @click="handleDelete(user)"
+                  >
+                    <Trash2 class="w-4 h-4 text-destructive" />
+                  </button>
+                </template>
+              </template>
             </div>
           </div>
         </GlassCard>
       </div>
-    </main>
-  </div>
+    </PageMain>
+
+    <div
+      v-if="confirmDelete"
+      class="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-5 sm:items-center"
+      @click.self="closeDelete"
+    >
+      <GlassCard class="w-full max-w-md">
+        <p class="text-caps text-sm mb-2">УДАЛИТЬ ПОЛЬЗОВАТЕЛЯ</p>
+        <p class="text-muted-foreground text-sm mb-4">
+          {{ confirmDelete.emailOrTelegramId }}
+        </p>
+        <div class="flex items-center gap-3">
+          <button
+            class="flex-1 py-3 rounded-2xl text-caps text-xs font-bold bg-glass/50 border border-glass-border/70 hover:bg-glass/70 transition-all"
+            @click="closeDelete"
+          >
+            ОТМЕНА
+          </button>
+          <button
+            class="flex-1 py-3 rounded-2xl text-caps text-xs font-bold bg-destructive text-destructive-foreground hover:brightness-110 transition-all"
+            @click="confirmDeleteUser"
+          >
+            УДАЛИТЬ
+          </button>
+        </div>
+      </GlassCard>
+    </div>
+  </PageLayout>
 </template>

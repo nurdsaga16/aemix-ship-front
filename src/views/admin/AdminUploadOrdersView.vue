@@ -111,7 +111,7 @@ const handleUpload = async () => {
 
   isUploading.value = true
   try {
-    const data = await ordersStore.importOrders({
+    const data = await ordersStore.uploadOrders({
       cityId: cityId.value,
       orders: parsedOrders.value,
     })

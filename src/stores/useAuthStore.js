@@ -17,6 +17,12 @@ export const useAuthStore = defineStore('auth', () => {
     cookies.remove('authData', { path: '/' })
   }
 
+  function restoreToken(token) {
+    if (!token) return
+    const existing = cookies.get('authData') || {}
+    saveAuthData({ ...existing, token })
+  }
+
   function readAuthData() {
     const storedAuthData = cookies.get('authData')
     if (storedAuthData) authData.value = storedAuthData
@@ -140,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     authData,
     isLoggingOut,
+    restoreToken,
     login,
     loginWithTelegram,
     register,

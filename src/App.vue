@@ -8,6 +8,15 @@ import { api } from '@/api'
 const authStore = useAuthStore()
 
 onMounted(() => {
+  // Токен из hash после редиректа с Telegram callback (разные контексты storage)
+  const hash = window.location.hash
+  const authMatch = hash.match(/auth_token=([^&]+)/)
+  if (authMatch) {
+    const token = decodeURIComponent(authMatch[1])
+    authStore.restoreToken(token)
+    window.history.replaceState(null, '', window.location.pathname || '/')
+  }
+
   if (authStore.authData?.token) {
     api.get('/auth/me').catch(() => {})
   }

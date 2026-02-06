@@ -30,48 +30,11 @@ const filters = [
   { id: 'ready', label: 'ГОТОВ' },
 ]
 
-const cityOptions = computed(() => {
-  const seen = new Map()
-  for (const order of ordersStore.orders) {
-    if (order.cityId != null && order.cityName && !seen.has(order.cityId)) {
-      seen.set(order.cityId, order.cityName)
-    }
-  }
-  return Array.from(seen.entries()).map(([id, name]) => ({ id, name }))
-})
-
+const cityOptions = ref([])
 const sortOptions = [
   { id: 'newest', label: 'Сначала новые' },
   { id: 'oldest', label: 'Сначала старые' },
 ]
-
-const statusOrder = ['shipped', 'arrived', 'ready']
-const filteredOrders = computed(() => {
-  const query = searchQuery.value.trim().toUpperCase()
-  return ordersStore.orders.filter((order) => {
-    const matchesStatus = statusFilter.value === 'all' || order.status === statusFilter.value
-    const matchesCity =
-      cityFilter.value === 'all' || String(order.cityId) === String(cityFilter.value)
-    const matchesQuery =
-      !query ||
-      order.trackCode.toUpperCase().includes(query) ||
-      (order.title && order.title.toUpperCase().includes(query))
-    return matchesStatus && matchesCity && matchesQuery
-  })
-})
-
-const sortedOrders = computed(() => {
-  const items = [...filteredOrders.value]
-  if (sortOption.value === 'status') {
-    return items.sort(
-      (a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status),
-    )
-  }
-  if (sortOption.value === 'oldest') {
-    return items.sort((a, b) => a.updatedAt - b.updatedAt)
-  }
-  return items.sort((a, b) => b.updatedAt - a.updatedAt)
-})
 
 const goToPage = (page) => {
   if (page < 0 || page >= ordersStore.totalPages || ordersStore.loading) return
@@ -117,7 +80,8 @@ useFilterDebounce(
   400
 )
 
-onMounted(() => {
+onMounted(async () => {
+  cityOptions.value = await ordersStore.fetchCities()
   loadOrders(0)
 })
 </script>
@@ -198,7 +162,7 @@ onMounted(() => {
         />
       </GlassCard>
 
-      <div v-if="sortedOrders.length === 0" class="flex flex-col items-center justify-center min-h-[45vh] animate-slide-up">
+      <div v-if="ordersStore.orders.length === 0" class="flex flex-col items-center justify-center min-h-[45vh] animate-slide-up">
         <div class="w-24 h-24 rounded-3xl bg-glass/40 flex items-center justify-center mb-6">
           <Package class="w-12 h-12 text-muted-foreground" />
         </div>
@@ -211,7 +175,7 @@ onMounted(() => {
 
       <div v-else class="space-y-3">
         <GlassCard
-          v-for="(order, index) in sortedOrders"
+          v-for="(order, index) in ordersStore.orders"
           :key="order.trackCode"
           @click="handleOrderClick(order.trackCode)"
           :delay="0.1 + index * 0.06"

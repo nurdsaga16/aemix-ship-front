@@ -34,6 +34,7 @@ export const useScanLogsStore = defineStore('scanLogs', () => {
     page: pageNum = 0,
     size: pageSize = 50,
     operator,
+    cityId,
     status,
     fromDate,
     toDate,
@@ -47,6 +48,7 @@ export const useScanLogsStore = defineStore('scanLogs', () => {
       }
 
       if (operator) params.operator = operator
+      if (cityId != null && cityId !== 'all') params.cityId = cityId
       if (status) params.status = status
       if (fromDate) params.fromDate = fromDate
       if (toDate) params.toDate = toDate

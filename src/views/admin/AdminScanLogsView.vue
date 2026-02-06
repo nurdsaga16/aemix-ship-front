@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ScanLine } from 'lucide-vue-next'
 import GlassCard from '@/components/GlassCard.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -8,29 +8,21 @@ import PageHeader from '@/components/PageHeader.vue'
 import PageMain from '@/components/PageMain.vue'
 import AppSelect from '@/components/AppSelect.vue'
 import FormLabel from '@/components/FormLabel.vue'
+import { useFilterDebounce } from '@/composables/useFilterDebounce'
 import { PAGE_SIZE_OPTIONS } from '@/constants/pagination'
 import { useScanLogsStore } from '@/stores/useScanLogsStore'
+import { useOrdersStore } from '@/stores/useOrdersStore'
 
 const scanLogsStore = useScanLogsStore()
+const ordersStore = useOrdersStore()
 
-const operatorFilter = ref('all')
+const operatorFilter = ref('')
 const cityFilter = ref('all')
 const statusFilter = ref('all')
 const fromDate = ref('')
 const toDate = ref('')
 const pageSize = ref(20)
-
-const pageSizeOptions = [10, 20, 50, 100]
-
-const operatorOptions = computed(() => {
-  const operators = scanLogsStore.logs.map((log) => log.operator).filter(Boolean)
-  return Array.from(new Set(operators))
-})
-
-const cityOptions = computed(() => {
-  const cities = scanLogsStore.logs.map((log) => log.cityName).filter(Boolean)
-  return Array.from(new Set(cities))
-})
+const cityOptions = ref([])
 
 const statusOptions = [
   { id: 'all', label: 'Все статусы' },
@@ -74,27 +66,10 @@ const statusClass = (status) => {
   }
 }
 
-const filteredLogs = computed(() => {
-  const from = fromDate.value ? new Date(`${fromDate.value}T00:00:00`) : null
-  const to = toDate.value ? new Date(`${toDate.value}T23:59:59`) : null
-
-  return scanLogsStore.logs.filter((log) => {
-    const matchesOperator = operatorFilter.value === 'all' || log.operator === operatorFilter.value
-    const matchesCity = cityFilter.value === 'all' || log.cityName === cityFilter.value
-    const matchesStatus =
-      statusFilter.value === 'all' || log.newStatus === statusFilter.value
-
-    const scannedDate = parseDate(log.scannedAt)
-    const matchesFrom = !from || (scannedDate && scannedDate >= from)
-    const matchesTo = !to || (scannedDate && scannedDate <= to)
-
-    return matchesOperator && matchesCity && matchesStatus && matchesFrom && matchesTo
-  })
-})
-
 const loadLogs = (page = 0) => {
-  const operator = operatorFilter.value === 'all' ? undefined : operatorFilter.value
+  const operator = operatorFilter.value?.trim() || undefined
   const status = statusFilter.value === 'all' ? undefined : statusFilter.value
+  const cityId = cityFilter.value === 'all' ? undefined : Number(cityFilter.value)
 
   const from =
     fromDate.value && fromDate.value !== ''
@@ -110,6 +85,7 @@ const loadLogs = (page = 0) => {
       page,
       size: pageSize.value,
       operator,
+      cityId,
       status,
       fromDate: from,
       toDate: to,
@@ -127,7 +103,14 @@ const goToPage = (page) => {
   loadLogs(page)
 }
 
-onMounted(() => {
+useFilterDebounce(
+  [operatorFilter, cityFilter, statusFilter, fromDate, toDate, pageSize],
+  () => loadLogs(0),
+  400
+)
+
+onMounted(async () => {
+  cityOptions.value = await ordersStore.fetchCities()
   loadLogs(0)
 })
 </script>
@@ -155,20 +138,20 @@ onMounted(() => {
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <FormLabel>ОПЕРАТОР</FormLabel>
-            <AppSelect v-model="operatorFilter">
-              <option value="all">Все операторы</option>
-              <option v-for="operator in operatorOptions" :key="operator" :value="operator">
-                {{ operator }}
-              </option>
-            </AppSelect>
+            <input
+              v-model="operatorFilter"
+              type="text"
+              placeholder="Поиск по оператору"
+              class="w-full bg-glass/50 border border-glass-border/80 rounded-xl px-4 py-2.5 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+            />
           </div>
 
           <div>
             <FormLabel>ГОРОД</FormLabel>
             <AppSelect v-model="cityFilter">
               <option value="all">Все города</option>
-              <option v-for="city in cityOptions" :key="city" :value="city">
-                {{ city }}
+              <option v-for="city in cityOptions" :key="city.id" :value="city.id">
+                {{ city.name }}
               </option>
             </AppSelect>
           </div>
@@ -219,7 +202,7 @@ onMounted(() => {
 
       <div class="space-y-3">
         <GlassCard
-          v-for="(log, index) in filteredLogs"
+          v-for="(log, index) in scanLogsStore.logs"
           :key="log.id"
           :delay="0.12 + index * 0.03"
         >

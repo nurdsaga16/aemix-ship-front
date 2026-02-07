@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: 'http://192.168.0.116:8080/api',
+  baseURL: 'https://aemix-ship-back-1-production.up.railway.app/api',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

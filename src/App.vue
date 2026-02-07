@@ -1,11 +1,12 @@
 <script setup>
 import { onMounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import StarField from '@/components/StarField.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { api } from '@/api'
 import { TELEGRAM_MINI_APP_LINK } from '@/constants/telegram'
 
+const router = useRouter()
 const authStore = useAuthStore()
 
 function redirectToMiniApp() {
@@ -18,11 +19,29 @@ function redirectToMiniApp() {
   }
 }
 
-onMounted(() => {
-  const hash = window.location.hash
-  const authTokenMatch = hash?.match(/#auth_token=([^&]+)/)
-  if (authTokenMatch?.[1]) {
-    const token = decodeURIComponent(authTokenMatch[1])
+onMounted(async () => {
+  const hash = window.location.hash?.slice(1) || ''
+  const params = new URLSearchParams(hash)
+
+  // 1. Mini App: tgWebAppStartParam — токен от бота при переходе по t.me/.../ship?startapp=TOKEN
+  const startAppToken = params.get('tgWebAppStartParam')
+  if (startAppToken) {
+    try {
+      const res = (await api.post('/auth/telegram/startapp', { token: startAppToken })).data
+      if (res.token) {
+        authStore.loginWithToken(res.token)
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        router.replace('/')
+      }
+    } catch {
+      // токен просрочен или недействителен — игнорируем
+    }
+  }
+
+  // 2. Прямая ссылка: #auth_token=JWT (fallback для старого формата)
+  const authToken = params.get('auth_token')
+  if (authToken && !authStore.authData?.token) {
+    const token = decodeURIComponent(authToken)
     if (authStore.loginWithToken(token)) {
       redirectToMiniApp()
       return

@@ -8,13 +8,23 @@ import { TELEGRAM_MINI_APP_LINK } from '@/constants/telegram'
 
 const authStore = useAuthStore()
 
+function redirectToMiniApp() {
+  const tg = window.Telegram?.WebApp
+  if (tg?.openTelegramLink) {
+    tg.openTelegramLink(TELEGRAM_MINI_APP_LINK)
+    tg.close?.()
+  } else {
+    window.location.href = TELEGRAM_MINI_APP_LINK
+  }
+}
+
 onMounted(() => {
   const hash = window.location.hash
   const authTokenMatch = hash?.match(/#auth_token=([^&]+)/)
   if (authTokenMatch?.[1]) {
     const token = decodeURIComponent(authTokenMatch[1])
     if (authStore.loginWithToken(token)) {
-      window.location.replace(TELEGRAM_MINI_APP_LINK)
+      redirectToMiniApp()
       return
     }
   }

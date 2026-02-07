@@ -10,6 +10,16 @@ const authStore = useAuthStore()
 const error = ref('')
 const loading = ref(true)
 
+function redirectToMiniApp() {
+  const tg = window.Telegram?.WebApp
+  if (tg?.openTelegramLink) {
+    tg.openTelegramLink(TELEGRAM_MINI_APP_LINK)
+    tg.close?.()
+  } else {
+    window.location.href = TELEGRAM_MINI_APP_LINK
+  }
+}
+
 onMounted(async () => {
   const params = route.query
   const hash = params.hash
@@ -31,8 +41,7 @@ onMounted(async () => {
 
   try {
     await authStore.loginWithTelegram(payload)
-    // Редирект в Telegram Mini App (токен уже сохранён в localStorage)
-    window.location.href = TELEGRAM_MINI_APP_LINK
+    redirectToMiniApp()
   } catch (e) {
     error.value = 'Ошибка входа через Telegram'
   } finally {

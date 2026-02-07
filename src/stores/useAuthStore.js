@@ -17,12 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
     cookies.remove('authData', { path: '/' })
   }
 
-  function restoreToken(token) {
-    if (!token) return
-    const existing = cookies.get('authData') || {}
-    saveAuthData({ ...existing, token })
-  }
-
   function readAuthData() {
     const storedAuthData = cookies.get('authData')
     if (storedAuthData) authData.value = storedAuthData
@@ -82,6 +76,36 @@ export const useAuthStore = defineStore('auth', () => {
       return { isVerified: true }
     } catch (err) {
       throw new Error('Ошибка входа через Telegram')
+    }
+  }
+
+  function loginWithToken(token) {
+    if (!token || typeof token !== 'string') return false
+    const payload = parseJwtPayload(token)
+    const emailOrTelegramId = payload?.emailOrTelegramId || payload?.sub
+    saveAuthData({
+      token,
+      emailOrTelegramId: emailOrTelegramId ? String(emailOrTelegramId) : undefined,
+      telegramId: /^\d+$/.test(String(emailOrTelegramId || '')) ? emailOrTelegramId : undefined,
+    })
+    return true
+  }
+
+  function parseJwtPayload(token) {
+    try {
+      const parts = token.split('.')
+      if (parts.length < 2) return null
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+      const json = decodeURIComponent(
+        atob(padded)
+          .split('')
+          .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join(''),
+      )
+      return JSON.parse(json)
+    } catch {
+      return null
     }
   }
 
@@ -146,9 +170,9 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     authData,
     isLoggingOut,
-    restoreToken,
     login,
     loginWithTelegram,
+    loginWithToken,
     register,
     verify,
     resendVerificationCode,

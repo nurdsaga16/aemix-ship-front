@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { TELEGRAM_MINI_APP_LINK } from '@/constants/telegram'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -30,12 +31,8 @@ onMounted(async () => {
 
   try {
     await authStore.loginWithTelegram(payload)
-    // Передаём токен в hash — Mini App и callback в разных контекстах (разный localStorage)
-    const token = authStore.authData?.token
-    const url = token
-      ? `${window.location.origin}/#auth_token=${encodeURIComponent(token)}`
-      : window.location.origin + '/'
-    window.location.href = url
+    // Редирект в Telegram Mini App (токен уже сохранён в localStorage)
+    window.location.href = TELEGRAM_MINI_APP_LINK
   } catch (e) {
     error.value = 'Ошибка входа через Telegram'
   } finally {

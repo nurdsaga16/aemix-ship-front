@@ -4,17 +4,19 @@ import { RouterView } from 'vue-router'
 import StarField from '@/components/StarField.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { api } from '@/api'
+import { TELEGRAM_MINI_APP_LINK } from '@/constants/telegram'
 
 const authStore = useAuthStore()
 
 onMounted(() => {
-  // Токен из hash после редиректа с Telegram callback (разные контексты storage)
   const hash = window.location.hash
-  const authMatch = hash.match(/auth_token=([^&]+)/)
-  if (authMatch) {
-    const token = decodeURIComponent(authMatch[1])
-    authStore.restoreToken(token)
-    window.history.replaceState(null, '', window.location.pathname || '/')
+  const authTokenMatch = hash?.match(/#auth_token=([^&]+)/)
+  if (authTokenMatch?.[1]) {
+    const token = decodeURIComponent(authTokenMatch[1])
+    if (authStore.loginWithToken(token)) {
+      window.location.replace(TELEGRAM_MINI_APP_LINK)
+      return
+    }
   }
 
   if (authStore.authData?.token) {

@@ -24,7 +24,22 @@ onMounted(async () => {
   const hash = window.location.hash?.slice(1) || ''
   const params = new URLSearchParams(hash)
 
-  // 1. Mini App: startapp токен — из query, hash или initData
+  // 1. Mini App: initData — всегда есть при открытии из Telegram
+  const initData = window.Telegram?.WebApp?.initData
+  if (initData) {
+    try {
+      const res = (await api.post('/auth/telegram/init', { initData })).data
+      if (res.token) {
+        authStore.loginWithToken(res.token)
+        window.history.replaceState(null, '', window.location.pathname)
+        router.replace('/')
+        return
+      }
+    } catch {
+      // initData невалидна
+    }
+  }
+  // 2. Fallback: startapp токен — из ссылки бота
   const startAppToken = getStartAppToken()
   if (startAppToken) {
     try {
@@ -39,7 +54,7 @@ onMounted(async () => {
     }
   }
 
-  // 2. Прямая ссылка: #auth_token=JWT (fallback для старого формата)
+  // 3. Прямая ссылка: #auth_token=JWT (fallback для старого формата)
   const authToken = params.get('auth_token')
   if (authToken && !authStore.authData?.token) {
     const token = decodeURIComponent(authToken)

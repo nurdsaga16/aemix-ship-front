@@ -165,12 +165,25 @@ router.beforeEach(async (to, from, next) => {
   const requiredRole = to.meta?.role
 
   if (to.meta.requiresAuth && !loggedIn) {
+    const authStore = useAuthStore()
+    const initData = window.Telegram?.WebApp?.initData
+    if (initData) {
+      try {
+        const res = (await api.post('/auth/telegram/init', { initData })).data
+        if (res.token) {
+          authStore.loginWithToken(res.token)
+          window.history.replaceState(null, '', window.location.pathname)
+          return next('/')
+        }
+      } catch {
+        // initData невалидна — пробуем startapp
+      }
+    }
     const startAppToken = getStartAppToken()
     if (startAppToken) {
       try {
         const res = (await api.post('/auth/telegram/startapp', { token: startAppToken })).data
         if (res.token) {
-          const authStore = useAuthStore()
           authStore.loginWithToken(res.token)
           window.history.replaceState(null, '', window.location.pathname)
           return next('/')

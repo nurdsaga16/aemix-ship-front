@@ -23,8 +23,13 @@ const cameraError = ref('')
 const lastScannedValue = ref('')
 const lastScannedAt = ref(0)
 const cameraKey = ref(0)
-const cameraStream = ref(null)
 const isSubmitting = ref(false)
+const torchOn = ref(false)
+const landscapeMode = ref(false)
+const hasTorch = ref(false)
+const hasFocusDistance = ref(null)
+const focusDistance = ref(0)
+const useManualFocus = ref(false)
 const DECODE_COOLDOWN_MS = 1500
 const scansHistory = ref([])
 
@@ -129,10 +134,9 @@ const handleToggleCamera = async () => {
   if (isCameraActive.value) {
     isCameraActive.value = false
     isCameraLoading.value = false
-    if (cameraStream.value) {
-      cameraStream.value.getTracks().forEach((track) => track.stop())
-      cameraStream.value = null
-    }
+    landscapeMode.value = false
+    torchOn.value = false
+    useManualFocus.value = false
     return
   }
   cameraError.value = ''
@@ -148,18 +152,10 @@ const handleToggleCamera = async () => {
     isCameraLoading.value = false
     return
   }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
-    })
-    cameraStream.value = stream
-    isCameraActive.value = true
-    setTimeout(() => {
-      if (isCameraLoading.value) isCameraLoading.value = false
-    }, 2000)
-  } catch (error) {
-    handleCameraError()
-  }
+  isCameraActive.value = true
+  setTimeout(() => {
+    if (isCameraLoading.value) isCameraLoading.value = false
+  }, 2000)
 }
 
 const handleDecode = (value) => {
@@ -179,10 +175,6 @@ const handleCameraError = () => {
   cameraError.value = 'Не удалось получить доступ к камере. Проверьте разрешения.'
   isCameraLoading.value = false
   isCameraActive.value = false
-  if (cameraStream.value) {
-    cameraStream.value.getTracks().forEach((track) => track.stop())
-    cameraStream.value = null
-  }
 }
 
 </script>
@@ -194,22 +186,56 @@ const handleCameraError = () => {
     <PageMain contentClass="space-y-6">
       <div class="mx-auto w-full max-w-md space-y-4">
         <GlassCard :delay="0.06">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
             <p class="text-caps text-sm">СКАНИРОВАТЬ КАМЕРОЙ</p>
-            <button
-              class="px-4 py-2 rounded-full text-caps text-xs transition-all border border-glass-border/70 bg-glass/50 hover:bg-glass/70"
-              @click="handleToggleCamera"
-            >
-              {{ isCameraActive ? 'ВЫКЛЮЧИТЬ' : 'ВКЛЮЧИТЬ' }}
-            </button>
+            <div class="flex items-center gap-2">
+              <button
+                v-if="isCameraActive && hasTorch"
+                class="px-3 py-1.5 rounded-full text-caps text-[10px] transition-all border border-glass-border/70 hover:bg-glass/70"
+                :class="torchOn ? 'border-amber-500/50 bg-amber-500/20' : 'bg-glass/50'"
+                @click="torchOn = !torchOn"
+              >
+                {{ torchOn ? 'ВСПЫШКА ВКЛ' : 'ВСПЫШКА' }}
+              </button>
+              <button
+                v-if="isCameraActive"
+                class="px-3 py-1.5 rounded-full text-caps text-[10px] transition-all border border-glass-border/70 bg-glass/50 hover:bg-glass/70"
+                :class="{ 'border-primary/50 bg-primary/20': landscapeMode }"
+                @click="landscapeMode = !landscapeMode"
+              >
+                {{ landscapeMode ? 'ПОРТРЕТ' : 'АЛЬБОМ' }}
+              </button>
+              <button
+                v-if="isCameraActive && hasFocusDistance"
+                class="px-3 py-1.5 rounded-full text-caps text-[10px] transition-all border border-glass-border/70 hover:bg-glass/70"
+                :class="useManualFocus ? 'border-emerald-500/50 bg-emerald-500/20' : 'bg-glass/50'"
+                @click="useManualFocus = !useManualFocus"
+              >
+                {{ useManualFocus ? 'АВТОФОКУС' : 'БЛИЗКО' }}
+              </button>
+              <button
+                class="px-4 py-2 rounded-full text-caps text-xs transition-all border border-glass-border/70 bg-glass/50 hover:bg-glass/70"
+                @click="handleToggleCamera"
+              >
+                {{ isCameraActive ? 'ВЫКЛЮЧИТЬ' : 'ВКЛЮЧИТЬ' }}
+              </button>
+            </div>
           </div>
           <div class="rounded-2xl overflow-hidden border border-glass-border/70 bg-glass/30">
-            <div v-if="isCameraActive" class="relative">
+            <div v-if="isCameraActive" class="relative min-h-[280px]">
               <StreamBarcodeReader
                 :key="cameraKey"
-                class="w-full h-56 object-cover"
+                :autofocus="!useManualFocus"
+                no-front-cameras
+                :torch="torchOn"
+                :landscape="landscapeMode"
+                :focus-distance="useManualFocus && hasFocusDistance ? (hasFocusDistance?.min ?? 0) : 0"
+                :ms-between-decoding="300"
+                class="scanner-reader w-full min-h-[280px]"
                 @decode="handleDecode"
-                @error="handleCameraError"
+                @loaded="isCameraLoading = false"
+                @update:has-torch="hasTorch = $event"
+                @update:has-focus-distance="hasFocusDistance = $event"
               />
               <div
                 v-if="isCameraLoading"
@@ -225,6 +251,9 @@ const handleCameraError = () => {
           </div>
           <p v-if="cameraError" class="text-xs text-red-300 mt-3">
             {{ cameraError }}
+          </p>
+          <p v-if="isCameraActive && !cameraError" class="text-xs text-muted-foreground mt-2">
+            Держите штрих-код на расстоянии 15–30 см. Если мутно — попробуйте «Альбом» или «Близко».
           </p>
         </GlassCard>
 
@@ -307,3 +336,15 @@ const handleCameraError = () => {
     </PageMain>
   </PageLayout>
 </template>
+
+<style scoped>
+.scanner-reader :deep(video) {
+  width: 100%;
+  height: auto;
+  min-height: 280px;
+  object-fit: contain;
+}
+.scanner-reader :deep(.scanner-container) {
+  width: 100%;
+}
+</style>

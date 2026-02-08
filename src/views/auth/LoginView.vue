@@ -113,7 +113,7 @@ const goToForgotPassword = () => {
                 </button>
 
                 <a
-                  href="https://t.me/aemix_ship_bot?start=login"
+                  href="https://t.me/aemix_tg_bot?start=login"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="w-full mb-4 py-4 rounded-2xl text-caps text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all no-underline"

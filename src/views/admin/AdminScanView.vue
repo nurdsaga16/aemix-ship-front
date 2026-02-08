@@ -184,11 +184,11 @@ const handleCameraError = () => {
     <PageHeader title="СКАНИРОВАНИЕ" :on-back="() => router.push('/')" />
 
     <PageMain contentClass="space-y-6">
-      <div class="mx-auto w-full max-w-md space-y-4">
+      <div class="mx-auto w-full max-w-md min-w-0 space-y-4">
         <GlassCard :delay="0.06">
-          <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <p class="text-caps text-sm">СКАНИРОВАТЬ КАМЕРОЙ</p>
-            <div class="flex items-center gap-2">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <p class="text-caps text-sm shrink-0">СКАНИРОВАТЬ КАМЕРОЙ</p>
+            <div class="flex flex-wrap items-center gap-2 min-w-0">
               <button
                 v-if="isCameraActive && hasTorch"
                 class="px-3 py-1.5 rounded-full text-caps text-[10px] transition-all border border-glass-border/70 hover:bg-glass/70"

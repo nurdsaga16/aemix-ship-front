@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getRoleFromToken } from '@/lib/auth'
+import { getStartAppToken } from '@/lib/telegramStartApp'
+import { api } from '@/api'
 
 const MainApp = () => import('@/views/MainApp.vue')
 const LoginView = () => import('@/views/auth/LoginView.vue')
@@ -158,11 +160,25 @@ function getUserRole() {
   return getRoleFromToken(authStore.authData?.token)
 }
 
-router.beforeEach((to, from, next) => {
-  const loggedIn = isAuthenticated()
+router.beforeEach(async (to, from, next) => {
+  let loggedIn = isAuthenticated()
   const requiredRole = to.meta?.role
 
   if (to.meta.requiresAuth && !loggedIn) {
+    const startAppToken = getStartAppToken()
+    if (startAppToken) {
+      try {
+        const res = (await api.post('/auth/telegram/startapp', { token: startAppToken })).data
+        if (res.token) {
+          const authStore = useAuthStore()
+          authStore.loginWithToken(res.token)
+          window.history.replaceState(null, '', window.location.pathname)
+          return next('/')
+        }
+      } catch {
+        // токен просрочен — продолжаем на /login
+      }
+    }
     next('/login')
   } else if (to.meta.guestOnly && loggedIn) {
     next('/')

@@ -50,10 +50,11 @@ onMounted(() => {
       <template v-if="isSuperAdmin" #trailing>
         <router-link
           to="/admin/instructions"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/20 text-primary text-xs font-bold hover:bg-primary/30 transition-all"
+          class="flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-3 py-2.5 sm:min-w-0 sm:min-h-0 sm:py-1.5 rounded-xl bg-primary/20 text-primary text-xs font-bold hover:bg-primary/30 active:scale-95 transition-all"
+          aria-label="Редактировать ссылки"
         >
-          <Settings class="w-4 h-4" />
-          Редактировать ссылки
+          <Settings class="w-4 h-4 sm:w-4 sm:h-4 shrink-0" />
+          <span class="hidden sm:inline">Редактировать ссылки</span>
         </router-link>
       </template>
     </PageHeader>

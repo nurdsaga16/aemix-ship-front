@@ -4,6 +4,7 @@ import { RouterView, useRouter } from 'vue-router'
 import StarField from '@/components/StarField.vue'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { api } from '@/api'
+import { getStartAppToken } from '@/lib/telegramStartApp'
 import { TELEGRAM_MINI_APP_LINK } from '@/constants/telegram'
 
 const router = useRouter()
@@ -23,14 +24,14 @@ onMounted(async () => {
   const hash = window.location.hash?.slice(1) || ''
   const params = new URLSearchParams(hash)
 
-  // 1. Mini App: tgWebAppStartParam — токен от бота при переходе по t.me/.../ship?startapp=TOKEN
-  const startAppToken = params.get('tgWebAppStartParam')
+  // 1. Mini App: startapp токен — из query, hash или initData
+  const startAppToken = getStartAppToken()
   if (startAppToken) {
     try {
       const res = (await api.post('/auth/telegram/startapp', { token: startAppToken })).data
       if (res.token) {
         authStore.loginWithToken(res.token)
-        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+        window.history.replaceState(null, '', window.location.pathname)
         router.replace('/')
       }
     } catch {
